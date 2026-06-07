@@ -1,0 +1,79 @@
+from sqlalchemy import Column, BigInteger, String, Float, Boolean, JSON, ForeignKey, DateTime, func, Text
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from pgvector.sqlalchemy import Vector
+
+Base = declarative_base()
+
+class Holding(Base):
+    __tablename__ = 'holdings'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ticker = Column(String, nullable=False)
+    shares = Column(Float, nullable=False)
+    avg_cost = Column(Float, nullable=False)
+    currency = Column(String, default='USD')
+    account = Column(String, default='main')
+    added_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Watchlist(Base):
+    __tablename__ = 'watchlist'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ticker = Column(String, nullable=False, unique=True)
+    name = Column(String)
+    sector = Column(String)
+    notes = Column(Text)
+    added_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class FintwitPost(Base):
+    __tablename__ = 'fintwit_posts'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    source = Column(String, nullable=False)
+    author_handle = Column(String, nullable=False)
+    author_name = Column(String)
+    content = Column(Text, nullable=False)
+    url = Column(String, unique=True)
+    posted_at = Column(DateTime(timezone=True), nullable=False)
+    tickers_mentioned = Column(JSONB)
+    sentiment = Column(Float)
+    ingested_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class TechnicalAlert(Base):
+    __tablename__ = 'technical_alerts'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ticker = Column(String, nullable=False)
+    alert_type = Column(String, nullable=False)
+    price_at_alert = Column(Float, nullable=False)
+    pct_change = Column(Float, nullable=False)
+    volume_ratio = Column(Float, nullable=False)
+    triggered_at = Column(DateTime(timezone=True), server_default=func.now())
+    acknowledged = Column(Boolean, default=False)
+
+class IdeationDocument(Base):
+    __tablename__ = 'ideation_documents'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    source = Column(String, nullable=False)
+    ticker = Column(String)
+    title = Column(String)
+    content = Column(Text, nullable=False)
+    metadata_json = Column("metadata", JSONB)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationship to embeddings
+    embeddings = relationship("IdeationEmbedding", back_populates="document", cascade="all, delete-orphan")
+
+class IdeationEmbedding(Base):
+    __tablename__ = 'ideation_embeddings'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    document_id = Column(BigInteger, ForeignKey('ideation_documents.id', ondelete='CASCADE'), nullable=False)
+    content_chunk = Column(Text, nullable=False)
+    embedding = Column(Vector(384))  # 384 dimensions, standard for many small embedding models
+    metadata_json = Column("metadata", JSONB)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    document = relationship("IdeationDocument", back_populates="embeddings")

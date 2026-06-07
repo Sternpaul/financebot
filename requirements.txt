@@ -1,0 +1,21 @@
+# Core
+discord.py==2.4.0
+pydantic==2.8.2
+pydantic-settings==2.3.4
+redis[hiredis]==5.0.7
+aiohttp==3.9.5
+
+# Database & ORM
+SQLAlchemy==2.0.31
+asyncpg==0.29.0
+pgvector==0.3.1
+alembic==1.13.2
+
+# Scheduling
+apscheduler==3.10.4
+
+# API Clients & Utilities
+yfinance==0.2.40
+openai==1.37.0
+tenacity==8.4.2    # For API retries
+python-dateutil==2.9.0.post0
