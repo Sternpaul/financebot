@@ -61,6 +61,7 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 **Future Possible Features**
 - **RAG & Ideation System**: Implement text chunking and OpenAI/Local API calls to store embeddings into `pgvector`, creating an AI-powered vector similarity search for research documents.
 - **Natural Language Router**: Interpret complex natural language queries (e.g., "@bot what should I long for...") via LLM.
+- **VADER Sentiment Alerts**: Actively alert in Discord when the calculated sentiment score of a specific tracked entity drops below a critical threshold.
 
 ---
 
