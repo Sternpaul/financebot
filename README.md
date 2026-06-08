@@ -18,6 +18,8 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 - **SQLAlchemy 2.0 + asyncpg**: Asynchronous ORM.
 - **OpenAI API**: For generating text embeddings.
 - **RSSHub**: For ingesting Fintwit, Substack, and YouTube feeds.
+- **VADER Sentiment**: Zero-resource, rule-based sentiment analysis for ingested feeds.
+- **Next.js & Vercel**: For a free, serverless web dashboard connected to Supabase.
 
 ---
 
@@ -43,13 +45,20 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 **Phase 3: Core Services (⏳ Pending)**
 - [ ] **Market Data Service**: Implement integrations with yfinance (for bulk quotes), Polygon, and Hyperliquid.
 - [ ] **RAG & Ideation Service**: Implement text chunking and OpenAI API calls to store embeddings into `pgvector`, and write the vector similarity search logic.
-- [ ] **Fintwit Ingestion**: Implement RSSHub parsing for Fintwit, Telegram, and Substack, storing results in the database.
+- [ ] **Fintwit Ingestion**: Implement RSSHub parsing for Fintwit, Telegram, and Substack, scoring sentiment with VADER, and storing results in the database.
 - [ ] **Technical Alerts**: Implement the logic to detect "Buy The F*ckin Dip" (BTFD) conditions (e.g., volume spikes, % drops).
 
 **Phase 4: Discord Interface (⏳ Pending)**
 - [ ] Register persistent UI Views (Buttons for Morning Report, Portfolio, Alerts).
 - [ ] Implement Natural Language router to interpret "@bot what should I long for...".
 - [ ] Deploy and test in a live server.
+
+**Phase 5: Web Dashboard (⏳ Pending)**
+- [ ] Initialize Next.js project.
+- [ ] Connect Next.js to the Supabase instance.
+- [ ] Build UI to manage portfolio, watchlists, and view bot settings.
+- [ ] Build feed view for news ranked by VADER sentiment scores.
+- [ ] Deploy to Vercel for free serverless hosting.
 
 ---
 
