@@ -43,6 +43,8 @@ services:
     environment:
       - CACHE_TYPE=redis
       - REDIS_URL=redis://redis:6379
+      - TWITTER_USERNAME=${TWITTER_USERNAME:-}
+      - TWITTER_PASSWORD=${TWITTER_PASSWORD:-}
       # - PUPPETEER_WS_ENDPOINT=ws://browserless:3000 # Add if adding browserless sidecar later
     depends_on:
       - redis
