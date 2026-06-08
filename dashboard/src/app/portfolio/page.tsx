@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import styles from './portfolio.module.css';
 
-export const revalidate = 0; // Always fetch live
+export const dynamic = 'force-dynamic';
 
 export default async function Portfolio() {
   const { data: holdings, error } = await supabase

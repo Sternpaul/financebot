@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import styles from './page.module.css';
 
-export const revalidate = 60; // Revalidate feed every 60 seconds
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // Fetch posts from supabase
