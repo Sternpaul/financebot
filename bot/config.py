@@ -9,6 +9,12 @@ class SharedConfig(BaseSettings):
     supabase_url: str = Field(..., alias="SUPABASE_URL")
     log_level: str = "INFO"
 
+    # API Keys
+    massive_api_key: Optional[str] = Field(None, alias="MASSIVE_API_KEY")
+    polygon_api_key: Optional[str] = Field(None, alias="POLYGON_API_KEY")
+    hyperliquid_api_key: Optional[str] = Field(None, alias="HYPERLIQUID_API_KEY")
+    finnhub_api_key: Optional[str] = Field(None, alias="FINNHUB_API_KEY")
+
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
 class BotConfig(SharedConfig):
@@ -24,11 +30,6 @@ class WorkerConfig(SharedConfig):
     market_hours_start: str = "09:00"
     market_hours_end: str = "17:30"
 
-    # API Keys
-    massive_api_key: Optional[str] = Field(None, alias="MASSIVE_API_KEY")
-    polygon_api_key: Optional[str] = Field(None, alias="POLYGON_API_KEY")
-    hyperliquid_api_key: Optional[str] = Field(None, alias="HYPERLIQUID_API_KEY")
-    finnhub_api_key: Optional[str] = Field(None, alias="FINNHUB_API_KEY")
 
     # LLM & Embedding
     llm_provider: str = Field("openrouter", alias="LLM_PROVIDER")
