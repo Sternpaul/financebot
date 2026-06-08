@@ -66,7 +66,7 @@ async def main():
     # scheduler.add_job(run_market_check, 'cron', day_of_week='mon-fri', hour='9-17', minute='*/15')
     
     # For testing, run every minute
-    scheduler.add_job(run_market_check, 'interval', minutes=1)
+    # scheduler.add_job(run_market_check, 'interval', minutes=1)
     
     # Morning report
     # scheduler.add_job(send_morning_report, 'cron', day_of_week='mon-fri', hour='07', minute='30')
