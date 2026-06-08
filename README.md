@@ -37,20 +37,18 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 
 ## 🚧 What Needs Work (Next Steps)
 
-**Phase 2: Database & Migrations (⏳ Pending)**
-- [ ] Initialize Alembic.
-- [ ] Generate the first database migration from the SQLAlchemy models.
-- [ ] Apply migrations to the Supabase instance.
+**Phase 2: Database & Migrations (✅ Completed)**
+- [x] Initialize Alembic.
+- [x] Generate the first database migration from the SQLAlchemy models.
+- [x] Apply migrations to the Supabase instance.
 
-**Phase 3: Core Services (⏳ Pending)**
+**Phase 3: Core Services (⏳ Current)**
 - [ ] **Market Data Service**: Implement integrations with yfinance (for bulk quotes), Polygon, and Hyperliquid.
-- [ ] **RAG & Ideation Service**: Implement text chunking and OpenAI API calls to store embeddings into `pgvector`, and write the vector similarity search logic.
 - [ ] **Fintwit Ingestion**: Implement RSSHub parsing for Fintwit, Telegram, and Substack, scoring sentiment with VADER, and storing results in the database.
 - [ ] **Technical Alerts**: Implement the logic to detect "Buy The F*ckin Dip" (BTFD) conditions (e.g., volume spikes, % drops).
 
 **Phase 4: Discord Interface (⏳ Pending)**
 - [ ] Register persistent UI Views (Buttons for Morning Report, Portfolio, Alerts).
-- [ ] Implement Natural Language router to interpret "@bot what should I long for...".
 - [ ] Deploy and test in a live server.
 
 **Phase 5: Web Dashboard (⏳ Pending)**
@@ -59,6 +57,10 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 - [ ] Build UI to manage portfolio, watchlists, and view bot settings.
 - [ ] Build feed view for news ranked by VADER sentiment scores.
 - [ ] Deploy to Vercel for free serverless hosting.
+
+**Future Possible Features**
+- **RAG & Ideation System**: Implement text chunking and OpenAI/Local API calls to store embeddings into `pgvector`, creating an AI-powered vector similarity search for research documents.
+- **Natural Language Router**: Interpret complex natural language queries (e.g., "@bot what should I long for...") via LLM.
 
 ---
 
