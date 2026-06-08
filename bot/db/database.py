@@ -10,13 +10,17 @@ db_url = config.supabase_url
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+if "?" in db_url:
+    db_url += "&prepared_statement_cache_size=0"
+else:
+    db_url += "?prepared_statement_cache_size=0"
+
 # Create the async engine
 engine = create_async_engine(
     db_url,
     echo=False,  # Set to True for SQL query debugging
     pool_size=10,
     max_overflow=20,
-    connect_args={"statement_cache_size": 0, "prepared_statement_cache_size": 0},
 )
 
 # Create an async session factory
