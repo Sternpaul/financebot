@@ -22,17 +22,31 @@ class Watchlist(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     ticker = Column(String, nullable=False, unique=True)
     name = Column(String)
+    asset_type = Column(String)
     sector = Column(String)
     notes = Column(Text)
+    alert_news = Column(Boolean, default=True)
+    alert_price_change = Column(Float, default=5.0)
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class FintwitPost(Base):
-    __tablename__ = 'fintwit_posts'
+class ContentSource(Base):
+    __tablename__ = 'content_sources'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    source = Column(String, nullable=False)
-    author_handle = Column(String, nullable=False)
+    platform = Column(String, nullable=False)
+    handle = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_core = Column(Boolean, default=False)
+    added_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class NewsArticle(Base):
+    __tablename__ = 'news_articles'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    source_platform = Column(String, nullable=False)
+    source_handle = Column(String, nullable=False)
     author_name = Column(String)
+    title = Column(String)
     content = Column(Text, nullable=False)
     url = Column(String, unique=True)
     posted_at = Column(DateTime(timezone=True), nullable=False)
