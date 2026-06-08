@@ -1,4 +1,5 @@
 import { logout } from '@/app/login/actions';
+import SourcesManager from '@/components/SourcesManager';
 
 export default function Settings() {
   return (
@@ -10,8 +11,10 @@ export default function Settings() {
         </p>
         <br/>
         <p style={{ color: 'var(--text-secondary)' }}>
-          GUI-based settings overrides and database syncing are coming in a future update!
+          To change configurations like Discord Tokens, API Keys, or Alert Thresholds, please edit the <code>.env</code> file directly on your Debian host and restart the bot containers.
         </p>
+
+        <SourcesManager />
         
         <form action={logout} style={{ marginTop: '30px', borderTop: '1px solid var(--glass-border)', paddingTop: '30px' }}>
           <button type="submit" style={{
