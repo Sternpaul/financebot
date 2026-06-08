@@ -7,6 +7,27 @@
   --accent-secondary: #0066ff;
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-hover: rgba(255, 255, 255, 0.15);
+  
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --glass-bg: var(--bg-secondary);
+  --accent: var(--accent-primary);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: rgba(255, 255, 255, 0.8);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-primary: #059669;
+  --accent-secondary: #2563eb;
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-border-hover: rgba(0, 0, 0, 0.2);
+  
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --glass-bg: var(--bg-secondary);
+  --accent: var(--accent-primary);
 }
 
 * {

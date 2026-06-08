@@ -28,18 +28,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem("app-theme", theme);
     document.documentElement.setAttribute("data-theme", theme);
-    if (theme === "light") {
-      document.documentElement.style.setProperty("--background", "#ffffff");
-      document.documentElement.style.setProperty("--foreground", "#0a0a0a");
-      // Optional UI polish: dynamically swap primary colors if desired
-    } else {
-      document.documentElement.style.setProperty("--background", "#0a0a0a");
-      document.documentElement.style.setProperty("--foreground", "#ededed");
-    }
+    document.cookie = `app-theme=${theme}; path=/; max-age=31536000`;
   }, [theme]);
 
   useEffect(() => {
     localStorage.setItem("app-currency", currency);
+    document.cookie = `app-currency=${currency}; path=/; max-age=31536000`;
   }, [currency]);
 
   const toggleTheme = () => setTheme(prev => (prev === "dark" ? "light" : "dark"));

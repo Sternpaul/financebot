@@ -3,17 +3,19 @@
 import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
-const FINNHUB_KEY = process.env.FINNHUB_API_KEY;
-
 export async function searchTickers(query: string) {
-  if (!query || !FINNHUB_KEY) return [];
+  if (!query) return [];
   
   try {
-    const res = await fetch(`https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_KEY}`);
+    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${query}&quotesCount=6`);
     const data = await res.json();
-    return data.result || [];
+    return data.quotes.map((q: any) => ({
+      symbol: q.symbol,
+      description: q.shortname || q.longname || q.symbol,
+      type: q.quoteType
+    }));
   } catch (error) {
-    console.error("Finnhub search error", error);
+    console.error("Yahoo search error", error);
     return [];
   }
 }

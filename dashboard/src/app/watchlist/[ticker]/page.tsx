@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 
 export default async function TickerDashboard({ params }: { params: { ticker: string } }) {
   const ticker = params.ticker.toUpperCase();
@@ -15,6 +16,14 @@ export default async function TickerDashboard({ params }: { params: { ticker: st
     const pRes = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB_KEY}`, { next: { revalidate: 86400 } });
     if (pRes.ok) profile = await pRes.json();
   }
+
+  // Handle Global Currency Context
+  const cookieStore = cookies();
+  const currencyCookie = cookieStore.get('app-currency')?.value || 'USD';
+  const isEur = currencyCookie === 'EUR';
+  const currencySymbol = isEur ? '€' : '$';
+  // Placeholder exchange rate (in a real app, fetch live EURUSD rate)
+  const exchangeRate = isEur ? 0.92 : 1.0;
 
   // 2. Fetch News from our Supabase DB
   const { data: news } = await supabase
@@ -37,9 +46,11 @@ export default async function TickerDashboard({ params }: { params: { ticker: st
         </div>
         {quote && quote.c && (
           <div style={{ textAlign: 'right' }}>
-            <h1 style={{ margin: 0, fontSize: '3rem', color: 'var(--foreground)' }}>${quote.c.toFixed(2)}</h1>
+            <h1 style={{ margin: 0, fontSize: '3rem', color: 'var(--foreground)' }}>
+              {currencySymbol}{(quote.c * exchangeRate).toFixed(2)}
+            </h1>
             <h3 style={{ margin: 0, color: quote.d >= 0 ? '#4caf50' : '#ff3366' }}>
-              {quote.d > 0 ? '+' : ''}{quote.d.toFixed(2)} ({quote.dp.toFixed(2)}%)
+              {quote.d > 0 ? '+' : ''}{(quote.d * exchangeRate).toFixed(2)} ({quote.dp.toFixed(2)}%)
             </h3>
           </div>
         )}
@@ -80,7 +91,7 @@ export default async function TickerDashboard({ params }: { params: { ticker: st
                 <p><strong>Industry:</strong> {profile.finnhubIndustry}</p>
                 <p><strong>Exchange:</strong> {profile.exchange}</p>
                 <p><strong>IPO:</strong> {profile.ipo}</p>
-                <p><strong>Market Cap:</strong> ${(profile.marketCapitalization || 0).toLocaleString()}M</p>
+                <p><strong>Market Cap:</strong> {currencySymbol}{((profile.marketCapitalization || 0) * exchangeRate).toLocaleString()}M</p>
                 {profile.weburl && <a href={profile.weburl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Website</a>}
               </div>
             ) : (
