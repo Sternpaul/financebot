@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
   // Fetch posts from supabase
   const { data: posts, error } = await supabase
-    .from('fintwit_posts')
+    .from('news_articles')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('posted_at', { ascending: false })
     .limit(30);
 
   return (
@@ -26,9 +26,9 @@ export default async function Home() {
         {posts?.map((post) => (
           <div key={post.id} className="glass-panel">
             <div className={styles.postHeader}>
-              <strong>{post.author || 'Unknown'}</strong>
-              <span className={styles.sentiment} data-score={post.sentiment_score}>
-                Score: {post.sentiment_score?.toFixed(2) || 'N/A'}
+              <strong>{post.author_name || post.source_handle || 'Unknown'}</strong>
+              <span className={styles.sentiment} data-score={post.sentiment}>
+                Score: {post.sentiment?.toFixed(2) || 'N/A'}
               </span>
             </div>
             <p className={styles.content}>{post.content}</p>
