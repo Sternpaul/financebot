@@ -61,9 +61,14 @@ async def main():
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(s)))
 
+from bot.services.news import run_news_ingestion
+
     # Add jobs to scheduler
     # Run market check every 15 minutes during market hours
     # scheduler.add_job(run_market_check, 'cron', day_of_week='mon-fri', hour='9-17', minute='*/15')
+    
+    # News Ingestion Engine (Every 15 minutes)
+    scheduler.add_job(run_news_ingestion, 'interval', minutes=15)
     
     # For testing, run every minute
     # scheduler.add_job(run_market_check, 'interval', minutes=1)
