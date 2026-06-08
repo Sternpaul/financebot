@@ -8,10 +8,10 @@ async def main():
         await session.execute(text("DELETE FROM holdings"))
         
         # Insert mock portfolio
-        await session.execute(text("INSERT INTO holdings (ticker, account_id, asset_type, quantity, average_price) VALUES ('AAPL', 'main', 'Stock', 50, 150.00)"))
-        await session.execute(text("INSERT INTO holdings (ticker, account_id, asset_type, quantity, average_price) VALUES ('TSLA', 'main', 'Stock', 20, 180.00)"))
-        await session.execute(text("INSERT INTO holdings (ticker, account_id, asset_type, quantity, average_price) VALUES ('BTC', 'main', 'Crypto', 0.5, 60000.00)"))
-        await session.execute(text("INSERT INTO holdings (ticker, account_id, asset_type, quantity, average_price) VALUES ('PLTR', 'main', 'Stock', 200, 15.00)"))
+        await session.execute(text("INSERT INTO holdings (ticker, account, shares, avg_cost) VALUES ('AAPL', 'main', 50, 150.00)"))
+        await session.execute(text("INSERT INTO holdings (ticker, account, shares, avg_cost) VALUES ('TSLA', 'main', 20, 180.00)"))
+        await session.execute(text("INSERT INTO holdings (ticker, account, shares, avg_cost) VALUES ('BTC', 'main', 0.5, 60000.00)"))
+        await session.execute(text("INSERT INTO holdings (ticker, account, shares, avg_cost) VALUES ('PLTR', 'main', 200, 15.00)"))
         
         await session.commit()
     print("Mock portfolio injected!")

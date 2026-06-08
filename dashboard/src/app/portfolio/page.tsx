@@ -10,7 +10,7 @@ export default async function Portfolio() {
     .select('*');
 
   // Handle Global Currency Context
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const currencyCookie = cookieStore.get('app-currency')?.value || 'USD';
   const isEur = currencyCookie === 'EUR';
   const symbol = isEur ? '€' : '$';
@@ -37,13 +37,13 @@ export default async function Portfolio() {
         const q = quotes.find((x: any) => x.symbol === querySym);
         return {
           ...h,
-          currentPrice: q ? q.regularMarketPrice : h.average_price,
+          currentPrice: q ? q.regularMarketPrice : h.avg_cost,
           pctChange: q ? q.regularMarketChangePercent : 0
         };
       });
     } catch (err) {
       console.error("Failed to fetch Yahoo Finance quotes", err);
-      holdingsWithPrices = holdings.map(h => ({ ...h, currentPrice: h.average_price, pctChange: 0 }));
+      holdingsWithPrices = holdings.map(h => ({ ...h, currentPrice: h.avg_cost, pctChange: 0 }));
     }
   }
 
@@ -66,11 +66,11 @@ export default async function Portfolio() {
               <div key={asset.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--foreground)' }}>{asset.ticker}</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{asset.quantity} shares</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{asset.shares} shares</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Avg Entry Price</span>
-                  <span style={{ color: 'var(--foreground)' }}>{symbol}{(asset.average_price * rate).toFixed(2)}</span>
+                  <span style={{ color: 'var(--foreground)' }}>{symbol}{(asset.avg_cost * rate).toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Current Price</span>
@@ -78,9 +78,9 @@ export default async function Portfolio() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '10px' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Total P&L</span>
-                  <span style={{ color: (asset.currentPrice - asset.average_price) >= 0 ? '#4caf50' : '#ff3366', fontWeight: 'bold' }}>
-                    {(asset.currentPrice - asset.average_price) >= 0 ? '+' : ''}
-                    {(((asset.currentPrice - asset.average_price) / asset.average_price) * 100).toFixed(2)}%
+                  <span style={{ color: (asset.currentPrice - asset.avg_cost) >= 0 ? '#4caf50' : '#ff3366', fontWeight: 'bold' }}>
+                    {(asset.currentPrice - asset.avg_cost) >= 0 ? '+' : ''}
+                    {(((asset.currentPrice - asset.avg_cost) / asset.avg_cost) * 100).toFixed(2)}%
                   </span>
                 </div>
               </div>

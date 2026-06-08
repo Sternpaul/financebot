@@ -9,14 +9,14 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
   const symbol = isEur ? '€' : '$';
   const rate = isEur ? 0.92 : 1.0;
 
-  const totalValue = holdingsWithPrices.reduce((sum, h) => sum + (h.quantity * h.currentPrice), 0);
-  const totalCost = holdingsWithPrices.reduce((sum, h) => sum + (h.quantity * h.average_price), 0);
+  const totalValue = holdingsWithPrices.reduce((sum, h) => sum + (h.shares * h.currentPrice), 0);
+  const totalCost = holdingsWithPrices.reduce((sum, h) => sum + (h.shares * h.avg_cost), 0);
   const totalPnL = totalValue - totalCost;
   const totalPnLPct = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
 
   const data = holdingsWithPrices.map(h => ({
     name: h.ticker,
-    value: h.quantity * h.currentPrice * rate
+    value: h.shares * h.currentPrice * rate
   })).sort((a, b) => b.value - a.value);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ff3366', '#4caf50'];

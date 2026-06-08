@@ -18,7 +18,7 @@ export default async function TickerDashboard({ params }: { params: { ticker: st
   }
 
   // Handle Global Currency Context
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const currencyCookie = cookieStore.get('app-currency')?.value || 'USD';
   const isEur = currencyCookie === 'EUR';
   const currencySymbol = isEur ? '€' : '$';
