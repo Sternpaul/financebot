@@ -56,7 +56,7 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 - [x] Connect Next.js to the Supabase instance.
 - [x] Build UI to manage portfolio, watchlists, and view bot settings.
 - [x] Build feed view for news ranked by VADER sentiment scores.
-- [ ] Deploy to Vercel for free serverless hosting.
+- [x] Deploy to Vercel for free serverless hosting.
 
 **Future Possible Features**
 - **Twitter Scraping via RSSHub**: Relying on Nitter or cookie-auth to scrape X/Twitter, which frequently breaks due to anti-bot measures.
