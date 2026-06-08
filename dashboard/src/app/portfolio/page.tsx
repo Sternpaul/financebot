@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import PortfolioCharts from '@/components/PortfolioCharts';
+import PortfolioManager from '@/components/PortfolioManager';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,9 @@ export default async function Portfolio() {
       <h1 className="header-title">My <span className="text-gradient">Portfolio</span></h1>
       
       {error && <p>Error loading portfolio: {error.message}</p>}
+      
+      <PortfolioManager />
+
       {(!holdings || holdings.length === 0) && !error ? (
         <div className="glass-panel">
           <p style={{ color: 'var(--text-secondary)' }}>Your portfolio is currently empty in the database. Run the seed script to test!</p>

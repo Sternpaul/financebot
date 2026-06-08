@@ -1,12 +1,14 @@
 :root {
-  --bg-primary: #050505;
-  --bg-secondary: rgba(20, 20, 25, 0.7);
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --accent-primary: #00ff66;
-  --accent-secondary: #0066ff;
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.15);
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --text-primary: #ededed;
+  --text-secondary: #888888;
+  --accent-primary: #ffffff;
+  --accent-secondary: #888888;
+  --glass-border: #222222;
+  --glass-border-hover: #333333;
+  --success: #4caf50;
+  --danger: #ff3366;
   
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
@@ -15,14 +17,16 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #f8f9fa;
-  --bg-secondary: rgba(255, 255, 255, 0.8);
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --accent-primary: #059669;
-  --accent-secondary: #2563eb;
-  --glass-border: rgba(0, 0, 0, 0.1);
-  --glass-border-hover: rgba(0, 0, 0, 0.2);
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --text-primary: #111111;
+  --text-secondary: #666666;
+  --accent-primary: #000000;
+  --accent-secondary: #666666;
+  --glass-border: #eaeaea;
+  --glass-border-hover: #cccccc;
+  --success: #059669;
+  --danger: #dc2626;
   
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
@@ -30,73 +34,109 @@
   --accent: var(--accent-primary);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
 
 /* --- Utilities --- */
 
 .glass-panel {
   background: var(--bg-secondary);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border-radius: 8px; /* Sharper corners for modern look */
   padding: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 
 .glass-panel:hover {
   border-color: var(--glass-border-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 255, 102, 0.05);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: inline-block;
+  color: var(--text-primary); /* Remove actual gradient, keep simple bold */
 }
 
 .page-container {
-  max-width: 1200px;
+  max-width: 1000px; /* Tighter Layout */
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 60px 20px;
   width: 100%;
   flex: 1;
 }
 
 .header-title {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 2rem;
+  font-weight: 600;
   margin-bottom: 30px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Global Form Elements */
+input {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+button {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+button.outline:hover {
+  background: var(--bg-secondary);
+  border-color: var(--glass-border-hover);
 }
