@@ -30,6 +30,9 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
 async def get_session() -> AsyncSession:
     """Dependency / helper for getting a database session"""
     async with AsyncSessionLocal() as session:
