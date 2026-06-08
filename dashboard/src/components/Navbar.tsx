@@ -21,6 +21,9 @@ export default function Navbar() {
         <Link href="/" className={`${styles.navItem} ${pathname === '/' ? styles.active : ''}`}>
           Feed
         </Link>
+        <Link href="/watchlist" className={`${styles.navItem} ${pathname.startsWith('/watchlist') ? styles.active : ''}`}>
+          Watchlist
+        </Link>
         <Link href="/portfolio" className={`${styles.navItem} ${pathname === '/portfolio' ? styles.active : ''}`}>
           Portfolio
         </Link>
