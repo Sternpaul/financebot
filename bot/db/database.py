@@ -7,13 +7,10 @@ config = get_bot_config()
 
 # Convert standard postgresql:// to postgresql+asyncpg://
 db_url = config.supabase_url
+import uuid
+
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-if "?" in db_url:
-    db_url += "&prepared_statement_cache_size=0"
-else:
-    db_url += "?prepared_statement_cache_size=0"
 
 # Create the async engine
 engine = create_async_engine(
@@ -21,6 +18,9 @@ engine = create_async_engine(
     echo=False,  # Set to True for SQL query debugging
     pool_size=10,
     max_overflow=20,
+    connect_args={
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__"
+    },
 )
 
 # Create an async session factory

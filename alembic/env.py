@@ -52,11 +52,6 @@ def run_migrations_offline() -> None:
     if db_url.startswith("postgresql://"):
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-    if "?" in db_url:
-        db_url += "&prepared_statement_cache_size=0"
-    else:
-        db_url += "?prepared_statement_cache_size=0"
-
     context.configure(
         url=db_url,
         target_metadata=target_metadata,
@@ -83,13 +78,9 @@ async def run_async_migrations() -> None:
 
     config_obj = get_bot_config()
     db_url = config_obj.supabase_url
+    import uuid
     if db_url.startswith("postgresql://"):
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-    if "?" in db_url:
-        db_url += "&prepared_statement_cache_size=0"
-    else:
-        db_url += "?prepared_statement_cache_size=0"
 
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = db_url
@@ -98,6 +89,9 @@ async def run_async_migrations() -> None:
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={
+            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__"
+        },
     )
 
     async with connectable.connect() as connection:
