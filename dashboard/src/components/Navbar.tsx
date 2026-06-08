@@ -6,6 +6,10 @@ import styles from './Navbar.module.css';
 export default function Navbar() {
   const pathname = usePathname();
 
+  if (pathname === '/login') {
+    return null;
+  }
+
   return (
     <nav className={styles.navbar}>
       <div className={styles.logo}>

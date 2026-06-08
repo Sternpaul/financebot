@@ -1,3 +1,5 @@
+import { logout } from '@/app/login/actions';
+
 export default function Settings() {
   return (
     <main className="page-container animate-fade-in">
@@ -10,6 +12,20 @@ export default function Settings() {
         <p style={{ color: 'var(--text-secondary)' }}>
           GUI-based settings overrides and database syncing are coming in a future update!
         </p>
+        
+        <form action={logout} style={{ marginTop: '30px', borderTop: '1px solid var(--glass-border)', paddingTop: '30px' }}>
+          <button type="submit" style={{
+            background: 'rgba(255, 51, 102, 0.1)',
+            color: '#ff3366',
+            border: '1px solid #ff3366',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}>
+            Lock Dashboard
+          </button>
+        </form>
       </div>
     </main>
   );
