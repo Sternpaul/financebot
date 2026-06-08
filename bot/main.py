@@ -14,10 +14,37 @@ logger = logging.getLogger(__name__)
 
 config = get_bot_config()
 
+class FinanceBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    async def setup_hook(self) -> None:
+        # Load cogs
+        await self.load_extension("bot.cogs.dashboard")
+        
+        # Instantiate services for the persistent view
+        from bot.services.market import MarketDataService
+        from bot.ui.views import DashboardView
+        market_service = MarketDataService(
+            massive_api_key=config.massive_api_key or config.polygon_api_key,
+            finnhub_api_key=config.finnhub_api_key
+        )
+        self.add_view(DashboardView(market_service=market_service))
+        
+        # Sync slash commands
+        if config.discord_guild_id:
+            guild = discord.Object(id=config.discord_guild_id)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            logger.info(f"Synced commands to guild {config.discord_guild_id}")
+        else:
+            await self.tree.sync()
+            logger.info("Synced commands globally")
+
 # Discord bot setup
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = FinanceBot(command_prefix="!", intents=intents)
 
 # Redis client for streams
 redis: Redis = None
@@ -25,8 +52,6 @@ redis: Redis = None
 @bot.event
 async def on_ready():
     logger.info(f"Bot logged in as {bot.user}")
-    # Here you would register persistent UI Views
-    # bot.add_view(MyPersistentView())
 
     # Start the Redis Stream consumer loop in the background
     bot.loop.create_task(consume_redis_streams())
