@@ -19,3 +19,6 @@ yfinance==0.2.40
 openai==1.37.0
 tenacity==8.4.2    # For API retries
 python-dateutil==2.9.0.post0
+polygon-api-client==1.14.2
+vaderSentiment==3.3.2
+feedparser==6.0.11
