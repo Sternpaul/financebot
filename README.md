@@ -51,11 +51,11 @@ The application utilizes a **Dual-Process Architecture** to ensure the Discord e
 - [ ] Register persistent UI Views (Buttons for Morning Report, Portfolio, Alerts).
 - [ ] Deploy and test in a live server.
 
-**Phase 5: Web Dashboard (⏳ Pending)**
-- [ ] Initialize Next.js project.
-- [ ] Connect Next.js to the Supabase instance.
-- [ ] Build UI to manage portfolio, watchlists, and view bot settings.
-- [ ] Build feed view for news ranked by VADER sentiment scores.
+**Phase 5: Web Dashboard (✅ Completed)**
+- [x] Initialize Next.js project.
+- [x] Connect Next.js to the Supabase instance.
+- [x] Build UI to manage portfolio, watchlists, and view bot settings.
+- [x] Build feed view for news ranked by VADER sentiment scores.
 - [ ] Deploy to Vercel for free serverless hosting.
 
 **Future Possible Features**

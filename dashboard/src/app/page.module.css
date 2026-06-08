@@ -1,0 +1,51 @@
+.feedGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.postHeader strong {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.sentiment {
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+}
+
+/* If sentiment is negative, we can style it via global utility or just keep it simple */
+.sentiment[data-score^="-"] {
+  color: #ff3366;
+  border-color: #ff3366;
+}
+
+.content {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+
+.footer a {
+  font-size: 0.85rem;
+  color: var(--accent-secondary);
+  text-decoration: underline;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.footer a:hover {
+  opacity: 1;
+}

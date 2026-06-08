@@ -1,0 +1,41 @@
+.portfolioGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.assetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ticker {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.balance {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.pnl {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+}
+
+.pnlPositive {
+  color: var(--accent-primary);
+  font-weight: bold;
+}
+
+.pnlNegative {
+  color: #ff3366;
+  font-weight: bold;
+}
