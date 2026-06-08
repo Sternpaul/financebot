@@ -32,14 +32,19 @@ class FinanceBot(commands.Bot):
         self.add_view(DashboardView(market_service=market_service))
         
         # Sync slash commands
-        if config.discord_guild_id:
-            guild = discord.Object(id=config.discord_guild_id)
-            self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
-            logger.info(f"Synced commands to guild {config.discord_guild_id}")
-        else:
-            await self.tree.sync()
-            logger.info("Synced commands globally")
+        try:
+            if config.discord_guild_id:
+                guild = discord.Object(id=config.discord_guild_id)
+                self.tree.copy_global_to(guild=guild)
+                await self.tree.sync(guild=guild)
+                logger.info(f"Synced commands to guild {config.discord_guild_id}")
+            else:
+                await self.tree.sync()
+                logger.info("Synced commands globally")
+        except discord.errors.Forbidden:
+            logger.error("Failed to sync commands: 403 Forbidden. Make sure you invited the bot with the 'applications.commands' scope!")
+        except Exception as e:
+            logger.error(f"Failed to sync commands: {e}")
 
 # Discord bot setup
 intents = discord.Intents.default()
