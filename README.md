@@ -24,47 +24,34 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 
 ## 📈 Current Status of Implementation
 
-**Phase 1: Architecture Scaffolding (✅ Completed)**
+**Phase 1 & 2: Architecture & Database (✅ Completed)**
 - [x] Docker Compose multi-service setup (`bot`, `worker`, `redis`, `rsshub`).
-- [x] Pydantic configuration (`bot/config.py`) loading `.env` variables securely.
-- [x] Async SQLAlchemy database connection established (`bot/db/database.py`).
-- [x] Database schemas built for Holdings, Watchlist, Content Sources, News Articles, Alerts, and Embeddings.
+- [x] Async SQLAlchemy database connection and complete schema migrations.
 
-**Phase 2: Database & Migrations (✅ Completed)**
-- [x] Initialize Alembic.
-- [x] Generate and apply migrations to the Supabase instance.
-- [x] Setup dynamic Data Sources & Roles.
-
-**Phase 5: Web Dashboard (✅ Completed)**
-- [x] Connect Next.js 15+ Server Components to the Supabase instance securely.
+**Phase 3: Web Dashboard (✅ Completed)**
 - [x] **Settings Tab**: Dynamic Sources Manager for configuring RSS/News scraping sources.
-- [x] **Feed Tab**: Live news intelligence feed parsing articles directly from the database.
+- [x] **Feed Tab**: Complete 3-column Yahoo Finance-style News Engine separating Traditional News, Substack Reports, and Telegram Alpha streams.
 - [x] **Watchlist Tab**: Global Yahoo Finance search engine & dedicated detailed Ticker Dashboards.
-- [x] **Portfolio Tab**: Interactive asset allocation charts (`recharts`), P&L calculators, and mutation forms.
-- [x] **UI/UX**: Modern minimalist design with Light/Dark mode toggles and global EUR/USD currency contexts via secure cookies.
+- [x] **Portfolio Tab**: Interactive asset allocation charts, P&L calculators, and mutation forms.
+
+**Phase 4: Core Background Services (✅ Completed)**
+- [x] **News/Fintwit Ingestion**: Background workers reliably poll configured Content Sources and inject intelligence into `news_articles`.
+- [x] **Alerts Engine**: Complete technical alerts (Price Targets, % Drops) with customizable thresholds per ticker.
+- [x] **Messaging Interface**: Live Discord integration pushing real-time alerts to the user's phone via Discord embeds with interactive [Acknowledge] buttons.
 
 ---
 
-## 🚧 What Needs Work (Next Steps)
+## 🚧 What Needs Work (Next Steps & Suggestions)
 
-**Phase 3: Core Services (⏳ Current)**
-- [x] **News/Fintwit Ingestion**: Background workers to poll configured Content Sources and inject intelligence into `news_articles`.
-- [ ] **Technical Alerts**: Implement the logic to detect "Buy The F*ckin Dip" (BTFD) conditions (e.g., volume spikes, % drops).
-- [ ] **Portfolio Tracking Background Job**: Re-evaluate portfolio value to send weekly summary alerts.
+**Phase 5: The AI & RAG Ideation Engine (⏳ Pending)**
+- [ ] **Semantic Search**: Implement text chunking and LLM API calls to store embeddings into `pgvector`. This will allow you to semantically query all your Substack and Telegram data (e.g., *"What is the consensus on TSLA earnings across my alpha channels?"*).
+- [ ] **Natural Language Chat**: Add a chat UI to the dashboard where an LLM agent has access to your portfolio, watchlist, and live market data.
 
-**Phase 4: Messaging Interface (Discord initially) (⏳ Pending)**
-- [ ] Register persistent UI Views (Buttons for Morning Report, Portfolio, Alerts).
-- [ ] Connect messaging context to the database to sync user commands to the UI.
-- [ ] Deploy and test in a live server.
-- [ ] Abstract messaging layer to support multiple platforms (Telegram, Slack, etc.).
+**Phase 6: Advanced Portfolio Analytics (⏳ Pending)**
+- [ ] **Equity Curve Tracking**: Create a background job that takes a daily snapshot of total portfolio value and stores it in a time-series table to render a historical performance chart (vs. the S&P 500 benchmark).
 
-**Phase 6: Alerts Hub & Research (Next Up)**
-- [ ] Build the Alerts Hub tab to configure global/per-ticker alert thresholds on the dashboard.
-- [ ] Build the Research tab to allow exploratory ticker searches without adding them to the permanent watchlist.
-
-**Future Possible Features**
-- **RAG & Ideation System**: Implement text chunking and OpenAI/Local API calls to store embeddings into `pgvector`, creating an AI-powered vector similarity search for research documents.
-- **Natural Language Router**: Interpret complex natural language queries (e.g., "@bot what should I long for...") via LLM.
+**Phase 7: Execution & Automation (💡 Idea)**
+- [ ] **Webhooks/Execution Hooks**: Allow technical alerts to trigger outbound webhooks (e.g., to automatically execute trades via an exchange API).
 
 ---
 
