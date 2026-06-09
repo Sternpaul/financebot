@@ -14,6 +14,8 @@
   --foreground: var(--text-primary);
   --glass-bg: var(--bg-secondary);
   --accent: var(--accent-primary);
+  
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
@@ -32,6 +34,8 @@
   --foreground: var(--text-primary);
   --glass-bg: var(--bg-secondary);
   --accent: var(--accent-primary);
+
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -107,6 +111,21 @@ input {
 input:focus {
   outline: none;
   border-color: var(--accent-primary);
+}
+
+input[type="date"] {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 button {
