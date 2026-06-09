@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
+import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from "recharts";
 import { useAppContext } from "./AppContext";
 import { updateHolding, deleteHolding } from "@/app/portfolio/actions";
 
@@ -82,10 +82,16 @@ export default function HoldingsList({ holdings, mode = "portfolio" }: { holding
             {/* 2. Sparkline */}
             <div style={{ height: "40px", width: "100%", paddingRight: "20px" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sparkData}>
+                <AreaChart data={sparkData}>
+                  <defs>
+                    <linearGradient id={`colorValue-${h.id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <YAxis domain={['dataMin', 'dataMax']} hide />
-                  <Line type="linear" dataKey="value" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
-                </LineChart>
+                  <Area type="linear" dataKey="value" stroke={color} strokeWidth={2} fillOpacity={1} fill={`url(#colorValue-${h.id})`} isAnimationActive={false} />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
 

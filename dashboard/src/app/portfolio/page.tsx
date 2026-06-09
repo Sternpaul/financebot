@@ -82,15 +82,15 @@ export default async function Portfolio() {
       
       {error && <p>Error loading portfolio: {error.message}</p>}
       
-      <PortfolioManager />
-
       {(!holdings || holdings.length === 0) && !error ? (
         <div className="glass-panel">
           <p style={{ color: 'var(--text-secondary)' }}>Your portfolio is currently empty in the database. Run the seed script to test!</p>
+          <PortfolioManager />
         </div>
       ) : (
         <>
           <PortfolioCharts holdingsWithPrices={holdingsWithPrices} />
+          <PortfolioManager />
           <HoldingsList holdings={holdingsWithPrices} />
         </>
       )}

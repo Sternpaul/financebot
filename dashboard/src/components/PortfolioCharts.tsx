@@ -58,7 +58,7 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
       const { range, interval } = rangeMap[timeRange] || rangeMap['1M'];
 
       try {
-        const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=${range}&interval=${interval}`);
+        const res = await fetch(`/api/portfolio-history?symbols=${symbols}&range=${range}&interval=${interval}`);
         const data = await res.json();
         const sparks = data.spark?.result || [];
 
@@ -122,22 +122,22 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
       
       {/* Top Level Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-        <div className="glass-panel" style={{ textAlign: 'center' }}>
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '15px' }}>
           <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Total Balance</h3>
-          <h1 style={{ margin: '10px 0 0 0', fontSize: '2.5rem', color: 'var(--foreground)' }}>
+          <h1 style={{ margin: '10px 0 0 0', fontSize: '2rem', color: 'var(--foreground)', wordBreak: 'break-word' }}>
             {symbol}{(totalValue * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h1>
         </div>
-        <div className="glass-panel" style={{ textAlign: 'center' }}>
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '15px' }}>
           <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Daily P&L (24h)</h3>
-          <h1 style={{ margin: '10px 0 0 0', fontSize: '2.5rem', color: totalDailyPnL >= 0 ? '#4caf50' : '#ff3366' }}>
+          <h1 style={{ margin: '10px 0 0 0', fontSize: '2rem', color: totalDailyPnL >= 0 ? '#4caf50' : '#ff3366', wordBreak: 'break-word' }}>
             {totalDailyPnL >= 0 ? '+' : ''}{symbol}{(totalDailyPnL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <span style={{ fontSize: '1rem', marginLeft: '10px' }}>({totalDailyPnLPct.toFixed(2)}%)</span>
           </h1>
         </div>
-        <div className="glass-panel" style={{ textAlign: 'center' }}>
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '15px' }}>
           <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>All-Time P&L</h3>
-          <h1 style={{ margin: '10px 0 0 0', fontSize: '2.5rem', color: totalPnL >= 0 ? '#4caf50' : '#ff3366' }}>
+          <h1 style={{ margin: '10px 0 0 0', fontSize: '2rem', color: totalPnL >= 0 ? '#4caf50' : '#ff3366', wordBreak: 'break-word' }}>
             {totalPnL >= 0 ? '+' : ''}{symbol}{(totalPnL * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <span style={{ fontSize: '1rem', marginLeft: '10px' }}>({totalPnLPct.toFixed(2)}%)</span>
           </h1>
