@@ -47,3 +47,31 @@ export async function getHistoricalPrice(ticker: string, dateStr: string) {
   }
   return null;
 }
+
+export async function updateHolding(id: number, shares: number, avgCost: number) {
+  const { error } = await supabase
+    .from('holdings')
+    .update({ shares, avg_cost: avgCost })
+    .eq('id', id);
+
+  if (error) {
+    console.error("Error updating holding", error);
+    return { success: false, error: error.message };
+  }
+  revalidatePath('/portfolio');
+  return { success: true };
+}
+
+export async function deleteHolding(id: number) {
+  const { error } = await supabase
+    .from('holdings')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error("Error deleting holding", error);
+    return { success: false, error: error.message };
+  }
+  revalidatePath('/portfolio');
+  return { success: true };
+}

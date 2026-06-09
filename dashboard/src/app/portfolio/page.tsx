@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import PortfolioCharts from '@/components/PortfolioCharts';
 import PortfolioManager from '@/components/PortfolioManager';
+import HoldingsList from '@/components/HoldingsList';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -28,23 +29,41 @@ export default async function Portfolio() {
     }).join(',');
 
     try {
+      // 1. Fetch Quotes
       const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`, { next: { revalidate: 60 } });
       const data = await res.json();
       const quotes = data.quoteResponse?.result || [];
+
+      // 2. Fetch Sparklines
+      const sparkRes = await fetch(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=15m`, { next: { revalidate: 60 } });
+      const sparkData = await sparkRes.json();
+      const sparks = sparkData.spark?.result || [];
       
       holdingsWithPrices = holdings.map(h => {
         const t = h.ticker.toUpperCase();
         const querySym = ['BTC', 'ETH', 'SOL', 'DOGE'].includes(t) ? `${t}-USD` : t;
         const q = quotes.find((x: any) => x.symbol === querySym);
+        const s = sparks.find((x: any) => x.symbol === querySym);
+        
+        let sparkline = [];
+        if (s && s.response && s.response[0] && s.response[0].indicators && s.response[0].indicators.quote) {
+            const closePrices = s.response[0].indicators.quote[0].close;
+            if (closePrices) {
+               sparkline = closePrices.map((val: number, i: number) => ({ index: i, value: val })).filter((v: any) => v.value !== null);
+            }
+        }
+
         return {
           ...h,
           currentPrice: q ? q.regularMarketPrice : h.avg_cost,
-          pctChange: q ? q.regularMarketChangePercent : 0
+          pctChange: q ? q.regularMarketChangePercent : 0,
+          longName: q ? q.longName || q.shortName || h.ticker : h.ticker,
+          sparkline
         };
       });
     } catch (err) {
       console.error("Failed to fetch Yahoo Finance quotes", err);
-      holdingsWithPrices = holdings.map(h => ({ ...h, currentPrice: h.avg_cost, pctChange: 0 }));
+      holdingsWithPrices = holdings.map(h => ({ ...h, currentPrice: h.avg_cost, pctChange: 0, longName: h.ticker, sparkline: [] }));
     }
   }
 
@@ -63,33 +82,7 @@ export default async function Portfolio() {
       ) : (
         <>
           <PortfolioCharts holdingsWithPrices={holdingsWithPrices} />
-
-          <h2 style={{ marginTop: '40px', color: 'var(--foreground)' }}>Individual Holdings</h2>
-          <div style={{ display: 'grid', gap: '15px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-            {holdingsWithPrices.map((asset) => (
-              <div key={asset.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--foreground)' }}>{asset.ticker}</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{asset.shares} shares</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Avg Entry Price</span>
-                  <span style={{ color: 'var(--foreground)' }}>{symbol}{(asset.avg_cost * rate).toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Current Price</span>
-                  <span style={{ color: 'var(--foreground)' }}>{symbol}{(asset.currentPrice * rate).toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '10px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Total P&L</span>
-                  <span style={{ color: (asset.currentPrice - asset.avg_cost) >= 0 ? '#4caf50' : '#ff3366', fontWeight: 'bold' }}>
-                    {(asset.currentPrice - asset.avg_cost) >= 0 ? '+' : ''}
-                    {(((asset.currentPrice - asset.avg_cost) / asset.avg_cost) * 100).toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <HoldingsList holdings={holdingsWithPrices} />
         </>
       )}
     </main>
