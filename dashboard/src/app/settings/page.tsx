@@ -2,6 +2,7 @@ import { logout } from '@/app/login/actions';
 import SourcesManager from '@/components/SourcesManager';
 
 import GlobalAlerts from '@/components/GlobalAlerts';
+import AlertHistory from '@/components/AlertHistory';
 
 export default function Settings() {
   return (
@@ -13,6 +14,8 @@ export default function Settings() {
         </p>
 
         <GlobalAlerts />
+        
+        <AlertHistory />
         
         <SourcesManager />
         

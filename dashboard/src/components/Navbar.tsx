@@ -29,9 +29,6 @@ export default function Navbar() {
           <Link href="/portfolio" className={`${styles.navItem} ${pathname === '/portfolio' ? styles.active : ''}`}>
             Portfolio
           </Link>
-          <Link href="/alerts" className={`${styles.navItem} ${pathname === '/alerts' ? styles.active : ''}`}>
-            Alerts
-          </Link>
           <Link href="/settings" className={`${styles.navItem} ${pathname === '/settings' ? styles.active : ''}`}>
             Settings
           </Link>
