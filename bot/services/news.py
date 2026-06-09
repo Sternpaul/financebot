@@ -12,6 +12,17 @@ from bot.config import get_worker_config
 logger = logging.getLogger(__name__)
 config = get_worker_config()
 
+def sanitize_handle(handle: str, platform: str) -> str:
+    handle = handle.strip()
+    if platform == 'telegram':
+        if "t.me/" in handle:
+            handle = handle.split("t.me/")[-1].split("/")[0]
+        handle = handle.lstrip('@')
+    elif platform == 'substack':
+        if "substack.com" in handle:
+            handle = handle.replace("https://", "").replace("http://", "").split(".substack.com")[0]
+    return handle
+
 async def cleanup_old_articles():
     """Deletes articles older than 30 days to save DB space."""
     async with get_session() as session:
@@ -38,10 +49,11 @@ async def ingest_rsshub_sources():
     new_articles = []
     async with aiohttp.ClientSession() as http_session:
         for source in sources:
+            clean_handle = sanitize_handle(source.handle, source.platform)
             if source.platform == 'telegram':
-                url = f"{config.rsshub_url}/telegram/channel/{source.handle}"
+                url = f"{config.rsshub_url}/telegram/channel/{clean_handle}"
             elif source.platform == 'substack':
-                url = f"{config.rsshub_url}/substack/newsletters/{source.handle}"
+                url = f"{config.rsshub_url}/substack/newsletters/{clean_handle}"
             else:
                 continue
                 

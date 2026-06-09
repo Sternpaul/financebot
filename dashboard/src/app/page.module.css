@@ -1,51 +1,140 @@
 .feedGrid {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.5rem;
+}
+
+.yahooGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 25px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+@media (max-width: 1024px) {
+  .yahooGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .yahooGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.columnHeader {
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--glass-border);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Telegram Specifics */
+.telegramMessage {
+  background: rgba(36, 161, 222, 0.05);
+  border-left: 3px solid #24A1DE;
+  padding: 12px 15px;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* News Specifics */
+.newsArticle {
+  border-bottom: 1px dashed var(--glass-border);
+  padding-bottom: 12px;
+}
+.newsArticle:last-child {
+  border-bottom: none;
+}
+
+/* Substack Specifics */
+.reportCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+.reportCard:hover {
+  transform: translateY(-2px);
 }
 
 .postHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-}
-
-.postHeader strong {
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
-.sentiment {
+  margin-bottom: 0.5rem;
   font-size: 0.85rem;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
 }
 
-/* If sentiment is negative, we can style it via global utility or just keep it simple */
-.sentiment[data-score^="-"] {
-  color: #ff3366;
-  border-color: #ff3366;
+.authorName {
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 8px;
+  line-height: 1.4;
 }
 
 .content {
   color: var(--text-secondary);
   line-height: 1.6;
   font-size: 0.95rem;
-  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.footer a {
-  font-size: 0.85rem;
-  color: var(--accent-secondary);
-  text-decoration: underline;
-  opacity: 0.8;
-  transition: opacity 0.2s;
+.telegramContent {
+  color: var(--foreground);
+  line-height: 1.4;
+  font-size: 0.95rem;
 }
 
-.footer a:hover {
-  opacity: 1;
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.sentiment {
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-weight: bold;
+}
+
+.sentiment[data-score^="-"] {
+  background: rgba(255, 51, 102, 0.1);
+  color: var(--danger);
+}
+
+.sentiment:not([data-score^="-"]) {
+  background: rgba(0, 255, 153, 0.1);
+  color: var(--success);
 }
