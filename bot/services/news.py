@@ -79,7 +79,7 @@ async def ingest_rsshub_sources():
                 await session.rollback() # Duplicate URL
 
 async def ingest_watchlist_news():
-    """Fetches traditional news for tickers in the watchlist using yfinance."""
+    """Fetches traditional news for tickers in the watchlist using Yahoo Finance RSS feeds."""
     async with get_session() as session:
         stmt = select(Watchlist).where(Watchlist.alert_news == True)
         result = await session.execute(stmt)
@@ -88,43 +88,47 @@ async def ingest_watchlist_news():
     if not watchlists:
         return
 
-    async with get_session() as session:
+    async with aiohttp.ClientSession() as http_session:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         for w in watchlists:
+            url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={w.ticker}&region=US&lang=en-US"
             try:
-                # yfinance is blocking synchronously, but it's fast enough for a background worker.
-                # In production, we could wrap it in an executor.
-                ticker = yf.Ticker(w.ticker)
-                news = ticker.news
-                if not news:
-                    continue
-                    
-                for item in news[:3]:
-                    link = item.get('link')
-                    if not link: continue
-                    
-                    try:
-                        posted_at = datetime.fromtimestamp(item.get('providerPublishTime', 0), tz=timezone.utc)
-                    except:
-                        posted_at = datetime.now(timezone.utc)
+                async with http_session.get(url, headers=headers, timeout=10) as resp:
+                    if resp.status == 200:
+                        xml_data = await resp.text()
+                        feed = feedparser.parse(xml_data)
+                        
+                        new_articles = []
+                        for entry in feed.entries[:5]: # Top 5 recent news per ticker
+                            try:
+                                posted_at = parser.parse(entry.published)
+                            except:
+                                posted_at = datetime.now(timezone.utc)
 
-                    article = NewsArticle(
-                        source_platform='yfinance',
-                        source_handle=w.ticker,
-                        author_name=item.get('publisher', 'Yahoo Finance'),
-                        title=item.get('title', ''),
-                        content=item.get('summary', '') or item.get('title', ''),
-                        url=link,
-                        posted_at=posted_at,
-                        tickers_mentioned=[w.ticker]
-                    )
-                    
-                    try:
-                        session.add(article)
-                        await session.commit()
-                    except Exception:
-                        await session.rollback()
+                            article = NewsArticle(
+                                source_platform='yfinance',
+                                source_handle=w.ticker,
+                                author_name='Yahoo Finance',
+                                title=entry.get('title', ''),
+                                content=entry.get('description', '') or entry.get('summary', '') or entry.get('title', ''),
+                                url=entry.link,
+                                posted_at=posted_at,
+                                tickers_mentioned=[w.ticker]
+                            )
+                            new_articles.append(article)
+                        
+                        # Save to database
+                        async with get_session() as session:
+                            for article in new_articles:
+                                try:
+                                    session.add(article)
+                                    await session.commit()
+                                except Exception:
+                                    await session.rollback() # Ignores duplicate URLs
+                    else:
+                        logger.error(f"Yahoo RSS returned status {resp.status} for {w.ticker}")
             except Exception as e:
-                logger.error(f"Error fetching yfinance news for {w.ticker}: {e}")
+                logger.error(f"Error fetching Yahoo RSS for {w.ticker}: {e}")
 
 async def run_news_ingestion():
     logger.info("Starting news ingestion cycle...")
