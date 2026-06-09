@@ -50,6 +50,18 @@ export async function addHolding(ticker: string, shares: number, avgCost: number
   return { success: true };
 }
 
+export async function searchTickers(query: string) {
+  try {
+    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=5&newsCount=0`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.quotes || [];
+  } catch (e) {
+    console.error("Failed to search tickers", e);
+    return [];
+  }
+}
+
 export async function getHistoricalPrice(ticker: string, dateStr: string) {
   try {
     const date = new Date(dateStr);

@@ -1,15 +1,32 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { addHolding, getHistoricalPrice } from "@/app/portfolio/actions";
+import { addHolding, getHistoricalPrice, searchTickers } from "@/app/portfolio/actions";
 
 export default function PortfolioManager() {
   const [ticker, setTicker] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [shares, setShares] = useState("");
   const [dateBought, setDateBought] = useState("");
   const [avgCost, setAvgCost] = useState("");
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Search Debounce Effect
+  useEffect(() => {
+    if (searchQuery.length >= 2 && showDropdown) {
+      const search = async () => {
+        const results = await searchTickers(searchQuery);
+        setSearchResults(results.filter((r: any) => r.quoteType === 'EQUITY' || r.quoteType === 'CRYPTOCURRENCY' || r.quoteType === 'ETF'));
+      };
+      const id = setTimeout(search, 400);
+      return () => clearTimeout(id);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, showDropdown]);
 
   useEffect(() => {
     if (ticker && ticker.length >= 2 && dateBought) {
@@ -45,8 +62,43 @@ export default function PortfolioManager() {
       <h3 style={{ marginTop: 0, color: 'var(--foreground)' }}>Add Holding</h3>
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minWidth: '150px' }}>
-          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Ticker</label>
-          <input type="text" value={ticker} onChange={e => setTicker(e.target.value)} placeholder="AAPL" required />
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Asset / Ticker</label>
+          <div style={{ position: 'relative' }}>
+            <input 
+              type="text" 
+              value={searchQuery} 
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setTicker(e.target.value.toUpperCase());
+                setShowDropdown(true);
+              }} 
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              placeholder="Apple or AAPL" 
+              required 
+              style={{ width: '100%' }}
+            />
+            {showDropdown && searchResults.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', marginTop: '4px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                {searchResults.map(res => (
+                  <div 
+                    key={res.symbol} 
+                    onClick={() => {
+                      setTicker(res.symbol);
+                      setSearchQuery(res.symbol);
+                      setShowDropdown(false);
+                    }}
+                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-primary)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <span style={{ fontWeight: 'bold', color: 'var(--foreground)' }}>{res.symbol}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.shortname || res.longname}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minWidth: '150px' }}>
           <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Shares</label>
