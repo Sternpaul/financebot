@@ -1,23 +1,24 @@
-# 🤖 Personal AI Investment Platform
+# 📈 Personal AI Investment Dashboard
 
-A personalized web dashboard and AI investment research platform. It provides morning market reports, portfolio management, research coverage, technical alerts, and contextual answering via a RAG (Retrieval-Augmented Generation) engine. The backend includes a messaging bot—currently integrated with Discord—which is strictly responsible for delivering real-time alerts and messages. This messaging layer is designed to eventually connect to a number of different messaging services.
+A comprehensive, personalized web dashboard and AI-driven investment research platform. It provides a beautiful central hub for portfolio management, real-time market data, technical alerts, and research coverage.
+
+While the primary interface is the sleek Next.js Web Dashboard, the platform includes a decoupled background notification engine (currently integrated with Discord, but extensible to any messaging service) to push critical alerts and morning reports to your phone.
 
 ## 🏗️ Architecture
 
-This project is built for portability and zero vendor lock-in, deploying easily via Docker Compose. 
+This project is built for portability and zero vendor lock-in, deploying easily via Docker Compose.
 
-The backend utilizes a **Dual-Process Architecture** to ensure the messaging event loop is never blocked by heavy computations or API scraping:
-1. **Messaging Bot Process (`bot/main.py`)**: Currently runs `discord.py` to handle message delivery and consumes real-time alerts from Redis Streams. This service is designed to be easily extensible to multiple messaging platforms.
-2. **Worker Process (`bot/worker.py`)**: Runs `APScheduler` to handle background polling (RSS, News, Market Data), generate vector embeddings, and produce events to Redis Streams.
+The platform utilizes a **Modern Full-Stack Architecture**:
+1. **Web Dashboard (`dashboard/`)**: The core product. A sleek Next.js 15 Server-Side Rendered (SSR) application connected to Supabase. It features dynamic portfolios, real-time data fetching, and an incredibly fast UI.
+2. **Worker Process (`bot/worker.py`)**: Runs `APScheduler` to handle background polling (RSS, News, Market Data), generate vector embeddings, and produce system events.
+3. **Messaging Bot Process (`bot/main.py`)**: An ancillary service that consumes real-time alerts from Redis Streams and pushes notifications to configured platforms (e.g. Discord).
 
 ### Core Technologies
-- **Next.js 15+ & Vercel**: A sleek, serverless personalized web dashboard connected to Supabase featuring a modern, minimalist UI (Vercel/Linear style).
-- **Python 3.11**
-- **Supabase (PostgreSQL + pgvector)**: Single source of truth for relational data and document embeddings.
-- **Redis Streams**: Inter-process communication between the worker and the bot.
-- **SQLAlchemy 2.0 + asyncpg**: Asynchronous ORM.
-- **Yahoo Finance & Recharts**: Fail-safe global market data fetching and interactive portfolio charting.
-- **discord.py 2.4**: Current messaging interface (with an architecture built to expand to other platforms).
+- **Next.js 15+ & Vercel**: The primary interface. Features a modern, minimalist UI (Vercel/Linear style) with responsive charts and theming.
+- **Supabase (PostgreSQL + pgvector)**: Single source of truth for portfolio holdings, watchlists, user settings, and document embeddings.
+- **Real-Time Market Data**: Integration with Yahoo Finance and Massive.com (Polygon) for fail-safe, live pricing and time-series chart alignment.
+- **Python 3.11 & SQLAlchemy 2.0**: Handles the heavy lifting of background cron jobs, RSS polling, and data processing.
+- **Redis Streams**: Asynchronous event bus connecting the worker to the notification engine.
 
 ---
 

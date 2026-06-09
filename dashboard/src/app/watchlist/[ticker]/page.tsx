@@ -21,9 +21,10 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
       console.error(e);
   }
 
-  // Handle Global Currency Context
+  // Handle Global Context
   const cookieStore = await cookies();
   const currencyCookie = cookieStore.get('app-currency')?.value || 'USD';
+  const themeCookie = cookieStore.get('app-theme')?.value || 'dark';
   const isEur = currencyCookie === 'EUR';
   const currencySymbol = isEur ? '€' : '$';
   const exchangeRate = isEur ? 0.92 : 1.0;
@@ -73,8 +74,13 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Main Content Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="glass-panel" style={{ minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>Interactive TradingView Chart Component (Coming Soon)</p>
+          <div className="glass-panel" style={{ minHeight: '500px', padding: 0, overflow: 'hidden', display: 'flex' }}>
+            <iframe 
+              src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_123&symbol=${ticker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=${themeCookie}&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${ticker}`}
+              style={{ width: '100%', height: '500px', flex: 1 }}
+              frameBorder="0"
+              allowFullScreen
+            ></iframe>
           </div>
 
           <div className="glass-panel">
