@@ -27,6 +27,7 @@ class Watchlist(Base):
     notes = Column(Text)
     alert_news = Column(Boolean, default=True)
     alert_price_change = Column(Float, default=5.0)
+    custom_alerts = Column(JSONB, default=dict)
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class ContentSource(Base):

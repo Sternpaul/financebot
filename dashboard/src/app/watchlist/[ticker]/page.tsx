@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import AlertsManager from '@/components/AlertsManager';
 
 export default async function TickerDashboard({ params }: { params: Promise<{ ticker: string }> }) {
   const resolvedParams = await params;
@@ -17,6 +18,15 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
             quote = data.quoteResponse.result[0];
         }
     }
+  } catch(e) {
+      console.error(e);
+  }
+
+  // 1.5 Fetch Watchlist Data from DB to get custom_alerts
+  let watchlistData = null;
+  try {
+    const { data } = await supabase.from('watchlist').select('*').eq('ticker', ticker).single();
+    if (data) watchlistData = data;
   } catch(e) {
       console.error(e);
   }
@@ -104,6 +114,9 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
 
         {/* Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          <AlertsManager ticker={ticker} initialAlerts={watchlistData?.custom_alerts || {}} />
+
           <div className="glass-panel">
             <h3 style={{ marginTop: 0, color: 'var(--foreground)' }}>Company Profile</h3>
             {quote ? (
@@ -116,16 +129,6 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
             ) : (
               <p style={{ color: 'var(--text-secondary)' }}>Profile not available.</p>
             )}
-          </div>
-          
-          <div className="glass-panel">
-            <h3 style={{ marginTop: 0, color: 'var(--foreground)' }}>Active Alerts</h3>
-            <div style={{ border: '1px solid var(--danger)', padding: '10px', borderRadius: '8px', color: 'var(--danger)', fontSize: '0.9rem' }}>
-              Price Drop Alert: -5.0%
-            </div>
-            <div style={{ border: '1px solid var(--success)', padding: '10px', borderRadius: '8px', color: 'var(--success)', fontSize: '0.9rem', marginTop: '10px' }}>
-              News Sentiment Alert: Active
-            </div>
           </div>
         </div>
       </div>

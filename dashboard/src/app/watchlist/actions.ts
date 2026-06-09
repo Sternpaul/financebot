@@ -42,3 +42,18 @@ export async function removeFromWatchlist(id: number) {
   await supabase.from('watchlist').delete().eq('id', id);
   revalidatePath('/watchlist');
 }
+
+export async function updateCustomAlerts(ticker: string, customAlerts: any) {
+  const { error } = await supabase
+    .from('watchlist')
+    .update({ custom_alerts: customAlerts })
+    .eq('ticker', ticker.toUpperCase());
+    
+  if (error) {
+    console.error("Error updating custom alerts", error);
+    return { success: false, error: error.message };
+  }
+  
+  revalidatePath(`/watchlist/${ticker}`);
+  return { success: true };
+}

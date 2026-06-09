@@ -65,8 +65,8 @@ async def main():
     from bot.services.alerts import run_technical_alerts_check
 
     # Add jobs to scheduler
-    # Technical Alerts Engine (Every 15 minutes)
-    scheduler.add_job(run_technical_alerts_check, 'interval', minutes=15, args=[redis])
+    # Technical Alerts Engine (Every 1 minute for real-time checking)
+    scheduler.add_job(run_technical_alerts_check, 'interval', minutes=1, args=[redis])
     
     # News Ingestion Engine (Every 15 minutes)
     scheduler.add_job(run_news_ingestion, 'interval', minutes=15)
