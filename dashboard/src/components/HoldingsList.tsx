@@ -42,7 +42,7 @@ export default function HoldingsList({ holdings, mode = "portfolio" }: { holding
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "40px" }}>
-      <h2 style={{ margin: "0 0 10px 0", color: "var(--foreground)" }}>Individual Holdings</h2>
+      <h2 style={{ margin: "0 0 10px 0", color: "var(--foreground)" }}>{mode === "portfolio" ? "Individual Holdings" : "Tracked Assets"}</h2>
       
       {/* Header Row */}
       <div style={{ display: "grid", gridTemplateColumns: mode === "portfolio" ? "1.5fr 1fr 1fr 1.5fr 0.8fr" : "1.5fr 1fr 1fr 0.5fr", gap: "10px", padding: "0 20px 10px 20px", borderBottom: "1px solid var(--glass-border)", color: "var(--text-secondary)", fontSize: "0.85rem", fontWeight: "bold" }}>
