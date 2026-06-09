@@ -29,12 +29,7 @@ export default async function Portfolio() {
     }).join(',');
 
     try {
-      // 1. Fetch Quotes
-      const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`, { next: { revalidate: 60 } });
-      const data = await res.json();
-      const quotes = data.quoteResponse?.result || [];
-
-      // 2. Fetch Sparklines
+      // Fetch Sparklines and Quotes combined (v7 quote is 401 Unauthorized for some IPs)
       const sparkRes = await fetch(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=15m`, { next: { revalidate: 60 } });
       const sparkData = await sparkRes.json();
       const sparks = sparkData.spark?.result || [];
@@ -42,22 +37,36 @@ export default async function Portfolio() {
       holdingsWithPrices = holdings.map(h => {
         const t = h.ticker.toUpperCase();
         const querySym = ['BTC', 'ETH', 'SOL', 'DOGE'].includes(t) ? `${t}-USD` : t;
-        const q = quotes.find((x: any) => x.symbol === querySym);
         const s = sparks.find((x: any) => x.symbol === querySym);
         
         let sparkline = [];
-        if (s && s.response && s.response[0] && s.response[0].indicators && s.response[0].indicators.quote) {
-            const closePrices = s.response[0].indicators.quote[0].close;
-            if (closePrices) {
-               sparkline = closePrices.map((val: number, i: number) => ({ index: i, value: val })).filter((v: any) => v.value !== null);
+        let price = h.avg_cost;
+        let pctChange = 0;
+        let longName = h.ticker;
+
+        if (s && s.response && s.response[0]) {
+            const meta = s.response[0].meta;
+            if (meta) {
+                price = meta.regularMarketPrice || price;
+                const prevClose = meta.previousClose || price;
+                if (prevClose > 0) {
+                    pctChange = ((price - prevClose) / prevClose) * 100;
+                }
+                longName = meta.shortName || meta.longName || h.ticker;
+            }
+            if (s.response[0].indicators && s.response[0].indicators.quote) {
+                const closePrices = s.response[0].indicators.quote[0].close;
+                if (closePrices) {
+                   sparkline = closePrices.map((val: number, i: number) => ({ index: i, value: val })).filter((v: any) => v.value !== null);
+                }
             }
         }
 
         return {
           ...h,
-          currentPrice: q ? q.regularMarketPrice : h.avg_cost,
-          pctChange: q ? q.regularMarketChangePercent : 0,
-          longName: q ? q.longName || q.shortName || h.ticker : h.ticker,
+          currentPrice: price,
+          pctChange: pctChange,
+          longName,
           sparkline
         };
       });

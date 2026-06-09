@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { searchTickers, addToWatchlist, removeFromWatchlist } from "@/app/watchlist/actions";
+import { searchTickers, addToWatchlist } from "@/app/watchlist/actions";
+import HoldingsList from "./HoldingsList";
 
 export default function WatchlistManager({ initialWatchlist }: { initialWatchlist: any[] }) {
   const [query, setQuery] = useState("");
@@ -21,12 +22,6 @@ export default function WatchlistManager({ initialWatchlist }: { initialWatchlis
       await addToWatchlist(ticker, name, type);
       setResults([]);
       setQuery("");
-    });
-  };
-
-  const handleRemove = (id: number) => {
-    startTransition(async () => {
-      await removeFromWatchlist(id);
     });
   };
 
@@ -65,28 +60,11 @@ export default function WatchlistManager({ initialWatchlist }: { initialWatchlis
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: '15px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-        {initialWatchlist.map(item => (
-          <div key={item.id} style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '12px', position: 'relative' }}>
-            <button 
-              onClick={() => handleRemove(item.id)}
-              style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ff3366', cursor: 'pointer', fontSize: '1.2rem' }}
-              title="Remove"
-            >
-              ×
-            </button>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--foreground)' }}>{item.ticker}</h3>
-            <p style={{ margin: '5px 0', color: 'var(--text-secondary)' }}>{item.name}</p>
-            <span style={{ fontSize: '0.8rem', background: 'var(--background)', color: 'var(--foreground)', padding: '2px 6px', borderRadius: '4px', border: '1px solid #333' }}>{item.asset_type}</span>
-            <div style={{ marginTop: '15px' }}>
-              <Link href={`/watchlist/${item.ticker}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 'bold' }}>
-                View Dashboard →
-              </Link>
-            </div>
-          </div>
-        ))}
-        {initialWatchlist.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>Your watchlist is empty.</p>}
-      </div>
+      {initialWatchlist.length > 0 ? (
+        <HoldingsList holdings={initialWatchlist} mode="watchlist" />
+      ) : (
+        <p style={{ color: 'var(--text-secondary)' }}>Your watchlist is empty.</p>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { useAppContext } from "./AppContext";
 import { updateHolding, deleteHolding } from "@/app/portfolio/actions";
 
-export default function HoldingsList({ holdings }: { holdings: any[] }) {
+export default function HoldingsList({ holdings, mode = "portfolio" }: { holdings: any[], mode?: "portfolio" | "watchlist" }) {
   const { currency } = useAppContext();
   const isEur = currency === "EUR";
   const symbol = isEur ? "€" : "$";
@@ -45,11 +45,11 @@ export default function HoldingsList({ holdings }: { holdings: any[] }) {
       <h2 style={{ margin: "0 0 10px 0", color: "var(--foreground)" }}>Individual Holdings</h2>
       
       {/* Header Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1.5fr 0.8fr", gap: "10px", padding: "0 20px 10px 20px", borderBottom: "1px solid var(--glass-border)", color: "var(--text-secondary)", fontSize: "0.85rem", fontWeight: "bold" }}>
+      <div style={{ display: "grid", gridTemplateColumns: mode === "portfolio" ? "1.5fr 1fr 1fr 1.5fr 0.8fr" : "1.5fr 1fr 1fr 0.5fr", gap: "10px", padding: "0 20px 10px 20px", borderBottom: "1px solid var(--glass-border)", color: "var(--text-secondary)", fontSize: "0.85rem", fontWeight: "bold" }}>
         <div>Symbol</div>
         <div>Daily Chart</div>
         <div style={{ textAlign: "right" }}>Price & Change</div>
-        <div style={{ textAlign: "right" }}>Position & P&L</div>
+        {mode === "portfolio" && <div style={{ textAlign: "right" }}>Position & P&L</div>}
         <div style={{ textAlign: "right" }}>Actions</div>
       </div>
 
@@ -67,7 +67,7 @@ export default function HoldingsList({ holdings }: { holdings: any[] }) {
         const sparkData = h.sparkline && h.sparkline.length > 0 ? h.sparkline : [{ value: h.avg_cost }, { value: h.currentPrice }];
         
         return (
-          <div key={h.id} className="glass-panel" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1.5fr 0.8fr", gap: "10px", padding: "16px 20px", alignItems: "center", transition: "all 0.2s ease" }}>
+          <div key={h.id} className="glass-panel" style={{ display: "grid", gridTemplateColumns: mode === "portfolio" ? "1.5fr 1fr 1fr 1.5fr 0.8fr" : "1.5fr 1fr 1fr 0.5fr", gap: "10px", padding: "16px 20px", alignItems: "center", transition: "all 0.2s ease" }}>
             
             {/* 1. Identity */}
             <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden" }}>
@@ -84,7 +84,7 @@ export default function HoldingsList({ holdings }: { holdings: any[] }) {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={sparkData}>
                   <YAxis domain={['dataMin', 'dataMax']} hide />
-                  <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
+                  <Line type="linear" dataKey="value" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -97,33 +97,35 @@ export default function HoldingsList({ holdings }: { holdings: any[] }) {
               </span>
             </div>
 
-            {/* 4. Position & All-Time P&L */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "right" }}>
-              {editingId === h.id ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-end" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Shares:</span>
-                    <input type="number" step="any" value={editShares} onChange={e => setEditShares(e.target.value)} style={{ width: "70px", padding: "4px", fontSize: "0.8rem" }} />
+            {/* 4. Position & All-Time P&L (Portfolio Only) */}
+            {mode === "portfolio" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "right" }}>
+                {editingId === h.id ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-end" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Shares:</span>
+                      <input type="number" step="any" value={editShares} onChange={e => setEditShares(e.target.value)} style={{ width: "70px", padding: "4px", fontSize: "0.8rem" }} />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Cost:</span>
+                      <input type="number" step="any" value={editCost} onChange={e => setEditCost(e.target.value)} style={{ width: "70px", padding: "4px", fontSize: "0.8rem" }} />
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Cost:</span>
-                    <input type="number" step="any" value={editCost} onChange={e => setEditCost(e.target.value)} style={{ width: "70px", padding: "4px", fontSize: "0.8rem" }} />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <span style={{ fontSize: "1rem", fontWeight: "600", color: "var(--foreground)" }}>
-                    {symbol}{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", alignItems: "center" }}>
-                     <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{h.shares} sh</span>
-                     <span style={{ fontSize: "0.85rem", color: allTimePnL >= 0 ? "var(--success)" : "var(--danger)" }}>
-                       {allTimePnL >= 0 ? "+" : ""}{symbol}{allTimePnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({allTimePnLPct.toFixed(2)}%)
-                     </span>
-                  </div>
-                </>
-              )}
-            </div>
+                ) : (
+                  <>
+                    <span style={{ fontSize: "1rem", fontWeight: "600", color: "var(--foreground)" }}>
+                      {symbol}{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", alignItems: "center" }}>
+                       <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{h.shares}x</span>
+                       <span style={{ fontSize: "0.85rem", color: allTimePnL >= 0 ? "var(--success)" : "var(--danger)" }}>
+                         {allTimePnL >= 0 ? "+" : ""}{symbol}{allTimePnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({allTimePnLPct.toFixed(2)}%)
+                       </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* 5. Actions */}
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", alignItems: "center" }}>
@@ -134,9 +136,11 @@ export default function HoldingsList({ holdings }: { holdings: any[] }) {
                 </>
               ) : (
                 <>
-                  <button onClick={() => handleEditClick(h)} title="Edit Position" className="outline" style={{ padding: "6px", display: "flex", border: "none", color: "var(--text-secondary)" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  </button>
+                  {mode === "portfolio" && (
+                    <button onClick={() => handleEditClick(h)} title="Edit Position" className="outline" style={{ padding: "6px", display: "flex", border: "none", color: "var(--text-secondary)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                  )}
                   <button onClick={() => handleDelete(h.id)} title="Delete Position" className="outline" style={{ padding: "6px", display: "flex", border: "none", color: "var(--danger)" }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                   </button>
