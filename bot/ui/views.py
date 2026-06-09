@@ -5,6 +5,19 @@ from bot.services.market import MarketDataService
 
 logger = logging.getLogger(__name__)
 
+class AlertView(View):
+    def __init__(self, alert_id: str):
+        super().__init__(timeout=86400) # 1 day timeout
+        self.alert_id = alert_id
+
+    @discord.ui.button(label="Acknowledge", style=discord.ButtonStyle.secondary)
+    async def ack_btn(self, interaction: discord.Interaction, button: Button):
+        button.disabled = True
+        button.label = "Acknowledged"
+        button.style = discord.ButtonStyle.success
+        await interaction.response.edit_message(view=self)
+        await interaction.followup.send("Alert acknowledged.", ephemeral=True)
+
 class DashboardView(View):
     def __init__(self, market_service: MarketDataService):
         super().__init__(timeout=None) # Persistent view

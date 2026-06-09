@@ -84,12 +84,36 @@ async def consume_redis_streams():
                     stream = stream_name.decode('utf-8')
                     for message_id, data in messages:
                         logger.info(f"Received from {stream}: {data}")
-                        # Example: Send to Discord channel
                         channel = bot.get_channel(config.discord_channel_id)
-                        if channel:
-                            # Process data depending on stream
-                            # ...
-                            await channel.send(f"**New {stream} event:** {data}")
+                        
+                        if channel and stream == "alerts":
+                            try:
+                                alert_data = {k.decode('utf-8'): v.decode('utf-8') for k, v in data.items()}
+                                ticker = alert_data.get("ticker", "UNKNOWN")
+                                alert_type = alert_data.get("type", "ALERT")
+                                price = float(alert_data.get("price", 0))
+                                change_pct = float(alert_data.get("change_pct", 0))
+                                
+                                is_bearish = "BTFD" in alert_type or "TARGET_BELOW" in alert_type
+                                color = discord.Color.red() if is_bearish else discord.Color.green()
+                                
+                                embed = discord.Embed(
+                                    title=f"🚨 {alert_type}: {ticker}",
+                                    description=f"**{ticker}** has triggered your {alert_type} alert rule.",
+                                    color=color
+                                )
+                                embed.add_field(name="Current Price", value=f"${price:,.2f}", inline=True)
+                                embed.add_field(name="Daily Change", value=f"{change_pct:+.2f}%", inline=True)
+                                
+                                if "volume_ratio" in alert_data:
+                                    embed.add_field(name="Volume Spike", value=f"{float(alert_data['volume_ratio']):.1f}x Avg", inline=True)
+                                
+                                from bot.ui.views import AlertView
+                                view = AlertView(alert_id=alert_data.get("alert_id", "0"))
+                                
+                                await channel.send(embed=embed, view=view)
+                            except Exception as e:
+                                logger.error(f"Error parsing alert payload: {e}")
                         
                         # Acknowledge message
                         await redis.xack(stream_name, "bot_group", message_id)
