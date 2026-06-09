@@ -71,6 +71,9 @@ async def main():
     # News Ingestion Engine (Every 15 minutes)
     scheduler.add_job(run_news_ingestion, 'interval', minutes=15)
     
+    # Run once immediately on startup so we don't have to wait 15 minutes for the first data
+    asyncio.create_task(run_news_ingestion())
+    
     # Morning report
     # scheduler.add_job(send_morning_report, 'cron', day_of_week='mon-fri', hour='07', minute='30')
 
