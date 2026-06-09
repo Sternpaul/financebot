@@ -30,10 +30,11 @@ async def fetch_yahoo_quotes(symbols: List[str]) -> list:
 async def run_technical_alerts_check(redis_client: Redis):
     """
     Polls market data and detects custom alert conditions:
-    1. BTFD (Dump > X%)
-    2. Breakout (Pump > X%)
-    3. Target Above (Price crossed above Y)
-    4. Target Below (Price crossed below Y)
+    1. PERCENTAGE_UP (Gain > X%)
+    2. PERCENTAGE_DOWN (Loss > X%)
+    3. TARGET_ABOVE (Price crossed above Y)
+    4. TARGET_BELOW (Price crossed below Y)
+    * With optional volume spike requirements.
     """
     logger.info("Running technical alerts check...")
     
@@ -47,7 +48,6 @@ async def run_technical_alerts_check(redis_client: Redis):
             return
 
         symbols = [w.ticker for w in watchlists]
-        # Build mapping of ticker to custom_alerts
         alerts_map = {w.ticker: w.custom_alerts or {} for w in watchlists}
         
         quotes = await fetch_yahoo_quotes(symbols)
@@ -62,10 +62,15 @@ async def run_technical_alerts_check(redis_client: Redis):
             volume_ratio = current_volume / avg_volume_10d if avg_volume_10d else 0
             
             custom_rules = alerts_map.get(symbol, {})
+            vol_spike_req = custom_rules.get("vol_spike")
+            
+            # Check volume modifier if enabled
+            if vol_spike_req is not None:
+                if volume_ratio < float(vol_spike_req):
+                    continue # Volume requirement not met, skip all alerts for this ticker
             
             # Helper to check and fire alerts
             async def fire_alert(alert_type: str, threshold: float):
-                # 24h Cooldown logic per alert type
                 cooldown_stmt = select(TechnicalAlert).where(
                     TechnicalAlert.ticker == symbol,
                     TechnicalAlert.alert_type == alert_type,
@@ -101,28 +106,26 @@ async def run_technical_alerts_check(redis_client: Redis):
                     await redis_client.xadd("alerts", payload)
                     logger.info(f"Published {alert_type} alert for {symbol} to Redis.")
 
-            # Process BTFD (Drop > X% and volume spike)
-            btfd_threshold = custom_rules.get("btfd")
-            if btfd_threshold is not None:
-                drop_threshold = -abs(float(btfd_threshold))
-                if change_pct <= drop_threshold and current_volume > avg_volume_10d:
-                    await fire_alert("BTFD", btfd_threshold)
+            # Process Pct Up
+            pct_up = custom_rules.get("pct_up")
+            if pct_up is not None:
+                if change_pct >= float(pct_up):
+                    await fire_alert("PERCENTAGE_UP", pct_up)
                     
-            # Process Breakout (Pump > X% and volume spike)
-            breakout_threshold = custom_rules.get("breakout")
-            if breakout_threshold is not None:
-                pump_threshold = abs(float(breakout_threshold))
-                if change_pct >= pump_threshold and current_volume > avg_volume_10d:
-                    await fire_alert("BREAKOUT", breakout_threshold)
+            # Process Pct Down
+            pct_down = custom_rules.get("pct_down")
+            if pct_down is not None:
+                if change_pct <= -abs(float(pct_down)):
+                    await fire_alert("PERCENTAGE_DOWN", pct_down)
                     
             # Process Target Above
-            target_above = custom_rules.get("target_above")
+            target_above = custom_rules.get("price_up")
             if target_above is not None:
                 if price >= float(target_above):
                     await fire_alert("TARGET_ABOVE", target_above)
                     
             # Process Target Below
-            target_below = custom_rules.get("target_below")
+            target_below = custom_rules.get("price_down")
             if target_below is not None:
                 if price <= float(target_below):
                     await fire_alert("TARGET_BELOW", target_below)
