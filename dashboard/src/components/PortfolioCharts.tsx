@@ -197,7 +197,7 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
             </div>
           )}
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={historicalData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={historicalData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={chartColor} stopOpacity={0.8}/>
@@ -214,7 +214,8 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
                     (dataMax: number) => (dataMax + Math.abs(dataMax) * 0.05)
                  ]}
                  tick={{fontSize: 12}}
-                 dx={-10}
+                 dx={0}
+                 width={70}
               />
               <RechartsTooltip 
                 contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--glass-border)', color: 'var(--foreground)', borderRadius: '8px' }}
