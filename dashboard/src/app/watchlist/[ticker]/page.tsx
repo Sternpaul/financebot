@@ -115,7 +115,7 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
         {/* Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          <AlertsManager ticker={ticker} initialAlerts={watchlistData?.custom_alerts || {}} />
+          <AlertsManager ticker={ticker} initialAlerts={watchlistData?.custom_alerts || {}} currentPrice={price} />
 
           <div className="glass-panel">
             <h3 style={{ marginTop: 0, color: 'var(--foreground)' }}>Company Profile</h3>

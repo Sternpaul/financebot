@@ -30,28 +30,16 @@ export default async function GlobalAlerts() {
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem' }}>
-                  {rules.pct_up && (
+                  {rules.pct_change && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Gain Target:</span>
-                      <strong style={{ color: 'var(--success)' }}>+{rules.pct_up}%</strong>
+                      <span style={{ color: 'var(--text-secondary)' }}>Percentage Target:</span>
+                      <strong style={{ color: 'var(--foreground)' }}>±{rules.pct_change}%</strong>
                     </div>
                   )}
-                  {rules.pct_down && (
+                  {rules.price_target && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Loss Target:</span>
-                      <strong style={{ color: 'var(--danger)' }}>-{rules.pct_down}%</strong>
-                    </div>
-                  )}
-                  {rules.price_up && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Price Above:</span>
-                      <strong style={{ color: 'var(--accent-primary)' }}>${rules.price_up}</strong>
-                    </div>
-                  )}
-                  {rules.price_down && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Price Below:</span>
-                      <strong style={{ color: 'var(--accent-secondary)' }}>${rules.price_down}</strong>
+                      <span style={{ color: 'var(--text-secondary)' }}>Price Target:</span>
+                      <strong style={{ color: 'var(--accent-primary)' }}>${rules.price_target} ({rules.price_direction === 'UP' ? 'Above' : 'Below'})</strong>
                     </div>
                   )}
                   {rules.vol_spike && (

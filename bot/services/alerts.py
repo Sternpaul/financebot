@@ -30,10 +30,8 @@ async def fetch_yahoo_quotes(symbols: List[str]) -> list:
 async def run_technical_alerts_check(redis_client: Redis):
     """
     Polls market data and detects custom alert conditions:
-    1. PERCENTAGE_UP (Gain > X%)
-    2. PERCENTAGE_DOWN (Loss > X%)
-    3. TARGET_ABOVE (Price crossed above Y)
-    4. TARGET_BELOW (Price crossed below Y)
+    1. PERCENTAGE_CHANGE (Gain > X% or Loss < -X%)
+    2. PRICE_TARGET (Crossed above/below configured Y)
     * With optional volume spike requirements.
     """
     logger.info("Running technical alerts check...")
@@ -67,7 +65,7 @@ async def run_technical_alerts_check(redis_client: Redis):
             # Check volume modifier if enabled
             if vol_spike_req is not None:
                 if volume_ratio < float(vol_spike_req):
-                    continue # Volume requirement not met, skip all alerts for this ticker
+                    continue # Volume requirement not met
             
             # Helper to check and fire alerts
             async def fire_alert(alert_type: str, threshold: float):
@@ -106,26 +104,20 @@ async def run_technical_alerts_check(redis_client: Redis):
                     await redis_client.xadd("alerts", payload)
                     logger.info(f"Published {alert_type} alert for {symbol} to Redis.")
 
-            # Process Pct Up
-            pct_up = custom_rules.get("pct_up")
-            if pct_up is not None:
-                if change_pct >= float(pct_up):
-                    await fire_alert("PERCENTAGE_UP", pct_up)
+            # Process Percentage Change
+            pct_change = custom_rules.get("pct_change")
+            if pct_change is not None:
+                if change_pct >= float(pct_change):
+                    await fire_alert("PERCENTAGE_UP", pct_change)
+                elif change_pct <= -abs(float(pct_change)):
+                    await fire_alert("PERCENTAGE_DOWN", pct_change)
                     
-            # Process Pct Down
-            pct_down = custom_rules.get("pct_down")
-            if pct_down is not None:
-                if change_pct <= -abs(float(pct_down)):
-                    await fire_alert("PERCENTAGE_DOWN", pct_down)
-                    
-            # Process Target Above
-            target_above = custom_rules.get("price_up")
-            if target_above is not None:
-                if price >= float(target_above):
-                    await fire_alert("TARGET_ABOVE", target_above)
-                    
-            # Process Target Below
-            target_below = custom_rules.get("price_down")
-            if target_below is not None:
-                if price <= float(target_below):
-                    await fire_alert("TARGET_BELOW", target_below)
+            # Process Price Target
+            price_target = custom_rules.get("price_target")
+            price_direction = custom_rules.get("price_direction", "UP")
+            
+            if price_target is not None:
+                if price_direction == "UP" and price >= float(price_target):
+                    await fire_alert("TARGET_ABOVE", price_target)
+                elif price_direction == "DOWN" and price <= float(price_target):
+                    await fire_alert("TARGET_BELOW", price_target)
