@@ -41,17 +41,21 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 
 ---
 
-## 🚧 What Needs Work (Next Steps & Suggestions)
+## 🚧 What Needs Work (Next Steps & Roadmap)
 
-**Phase 5: The AI & RAG Ideation Engine (⏳ Pending)**
-- [ ] **Semantic Search**: Implement text chunking and LLM API calls to store embeddings into `pgvector`. This will allow you to semantically query all your Substack and Telegram data (e.g., *"What is the consensus on TSLA earnings across my alpha channels?"*).
-- [ ] **Natural Language Chat**: Add a chat UI to the dashboard where an LLM agent has access to your portfolio, watchlist, and live market data.
+**Phase 5: The AI & RAG Ideation Engine (Highest Priority)**
+Currently, we ingest hundreds of Telegram messages and Substack newsletters daily, but manual reading is required. We will implement **Semantic Search**:
+- **Chunking & Embeddings**: Chunk all ingested text and use an LLM API to create vector embeddings stored in our `pgvector` database.
+- **Semantic Research Hub**: Open a new "Research" tab on the dashboard to query your data semantically (e.g., *"What is the general sentiment on tech earnings right now?"*). The AI will scan all your alpha channels and reports instantly to synthesize an answer.
+- **Natural Language Chat**: Add a chat interface where an LLM agent has access to your portfolio, watchlist, and live market data.
 
-**Phase 6: Advanced Portfolio Analytics (⏳ Pending)**
-- [ ] **Equity Curve Tracking**: Create a background job that takes a daily snapshot of total portfolio value and stores it in a time-series table to render a historical performance chart (vs. the S&P 500 benchmark).
+**Phase 6: Advanced Portfolio Analytics (Equity Curve Tracking)**
+Currently, the Portfolio tab only tracks static current holdings.
+- **Time-Series Tracking**: Create a daily background job that calculates total portfolio value and stores it in a `portfolio_history` table.
+- **Performance Charting**: Render an interactive line chart showing P&L performance over the last 30/90 days compared to the S&P 500 benchmark.
 
-**Phase 7: Execution & Automation (💡 Idea)**
-- [ ] **Webhooks/Execution Hooks**: Allow technical alerts to trigger outbound webhooks (e.g., to automatically execute trades via an exchange API).
+**Phase 7: Execution & Automation Hooks (Optional but Powerful)**
+- **Automated Trading**: Allow technical alerts to trigger outbound webhooks (e.g., automatically firing a limit buy order via Binance or Hyperliquid when an asset drops 5% in volume).
 
 ---
 
