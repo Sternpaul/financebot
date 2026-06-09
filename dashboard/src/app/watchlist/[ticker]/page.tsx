@@ -2,8 +2,9 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 
-export default async function TickerDashboard({ params }: { params: { ticker: string } }) {
-  const rawTicker = params.ticker.toUpperCase();
+export default async function TickerDashboard({ params }: { params: Promise<{ ticker: string }> }) {
+  const resolvedParams = await params;
+  const rawTicker = resolvedParams.ticker.toUpperCase();
   const ticker = decodeURIComponent(rawTicker);
 
   // 1. Fetch Quote from Yahoo Finance (Safe, no API key needed)

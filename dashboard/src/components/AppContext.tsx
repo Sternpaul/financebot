@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type Theme = "light" | "dark";
 type Currency = "USD" | "EUR";
@@ -36,8 +37,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     document.cookie = `app-currency=${currency}; path=/; max-age=31536000`;
   }, [currency]);
 
+  const router = useRouter();
+
   const toggleTheme = () => setTheme(prev => (prev === "dark" ? "light" : "dark"));
-  const toggleCurrency = () => setCurrency(prev => (prev === "USD" ? "EUR" : "USD"));
+  const toggleCurrency = () => setCurrency(prev => {
+    const newCurrency = prev === "USD" ? "EUR" : "USD";
+    document.cookie = `app-currency=${newCurrency}; path=/; max-age=31536000`;
+    router.refresh();
+    return newCurrency;
+  });
 
   return (
     <AppContext.Provider value={{ theme, toggleTheme, currency, toggleCurrency }}>
