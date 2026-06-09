@@ -4,17 +4,46 @@ import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
 export async function addHolding(ticker: string, shares: number, avgCost: number) {
-  const { error } = await supabase.from('holdings').insert([{
-    ticker: ticker.toUpperCase(),
-    shares,
-    avg_cost: avgCost,
-    account: 'main',
-    currency: 'USD'
-  }]);
-  
-  if (error) {
-    console.error("Error adding holding", error);
-    return { success: false, error: error.message };
+  const symbol = ticker.toUpperCase();
+
+  // Check if position already exists
+  const { data: existing } = await supabase
+    .from('holdings')
+    .select('*')
+    .eq('ticker', symbol)
+    .eq('account', 'main')
+    .single();
+
+  if (existing) {
+    // Recalculate blended average cost and aggregate shares
+    const oldShares = existing.shares;
+    const oldCost = existing.avg_cost;
+    const newTotalShares = oldShares + shares;
+    const newAvgCost = ((oldShares * oldCost) + (shares * avgCost)) / newTotalShares;
+
+    const { error } = await supabase
+      .from('holdings')
+      .update({ shares: newTotalShares, avg_cost: newAvgCost })
+      .eq('id', existing.id);
+
+    if (error) {
+      console.error("Error updating existing holding", error);
+      return { success: false, error: error.message };
+    }
+  } else {
+    // Insert new position
+    const { error } = await supabase.from('holdings').insert([{
+      ticker: symbol,
+      shares,
+      avg_cost: avgCost,
+      account: 'main',
+      currency: 'USD'
+    }]);
+    
+    if (error) {
+      console.error("Error adding holding", error);
+      return { success: false, error: error.message };
+    }
   }
   
   revalidatePath('/portfolio');

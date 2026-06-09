@@ -62,39 +62,64 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
         const data = await res.json();
         const sparks = data.spark?.result || [];
 
-        const timeMap = new Map<number, number>();
+        // 1. Gather all unique timestamps to align irregular time-series
+        const allTimestamps = new Set<number>();
         sparks.forEach((s: any) => {
            const timestamps = s.response[0]?.timestamp || [];
-           const closes = s.response[0]?.indicators?.quote[0]?.close || [];
+           timestamps.forEach((ts: number) => allTimestamps.add(ts));
+        });
+        const sortedTimes = Array.from(allTimestamps).sort((a, b) => a - b);
+
+        // 2. Setup LOCF (Last Observation Carried Forward) state for each symbol
+        const seriesData = sparks.map((s: any) => {
            const sym = s.symbol;
            const h = holdingsWithPrices.find(x => x.ticker.toUpperCase() === sym.replace('-USD', ''));
            const shares = h ? h.shares : 0;
            
+           const timestamps = s.response[0]?.timestamp || [];
+           const closes = s.response[0]?.indicators?.quote[0]?.close || [];
+           
+           const priceMap = new Map<number, number>();
            timestamps.forEach((ts: number, i: number) => {
-             const price = closes[i];
-             if (price !== null) {
-               // Approximate backfilling for dates before the asset was bought could be done here, 
-               // but a professional portfolio shows performance based on holding shares * historical price.
-               const val = timeMap.get(ts) || 0;
-               timeMap.set(ts, val + (price * shares * rate));
-             }
+              if (closes[i] !== null) priceMap.set(ts, closes[i]);
            });
+           
+           // Initialize with previous close to prevent artificial 0-value drops during pre-market
+           let firstPrice = 0;
+           if (s.response[0]?.meta?.previousClose) {
+               firstPrice = s.response[0].meta.previousClose;
+           } else {
+               const firstValid = closes.find((c: any) => c !== null);
+               if (firstValid) firstPrice = firstValid;
+           }
+           
+           return { sym, shares, priceMap, lastKnownPrice: firstPrice };
         });
 
-        const sortedTimes = Array.from(timeMap.keys()).sort();
+        // 3. Walk through chronological timeline and aggregate portfolio value
         const chartData = sortedTimes.map(ts => {
+           let portfolioValue = 0;
+           
+           seriesData.forEach((series: any) => {
+              if (series.priceMap.has(ts)) {
+                 series.lastKnownPrice = series.priceMap.get(ts)!;
+              }
+              portfolioValue += series.lastKnownPrice * series.shares * rate;
+           });
+
            const d = new Date(ts * 1000);
            const dateStr = ['1D', '1W'].includes(timeRange) 
               ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
               : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: ['ALL', '1Y'].includes(timeRange) ? 'numeric' : undefined });
+           
            return {
              timestamp: ts,
              date: dateStr,
-             value: timeMap.get(ts)
+             value: portfolioValue
            };
         });
 
-        // Add current value at the very end to ensure it meets today's precise quote
+        // Add current value at the very end to ensure it meets today's precise live quote
         if (chartData.length > 0) {
             chartData[chartData.length - 1].value = totalValue * rate;
         }
@@ -183,8 +208,11 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
               <XAxis dataKey="date" stroke="var(--text-secondary)" tick={{fontSize: 12}} dy={10} minTickGap={30} />
               <YAxis 
                  stroke="var(--text-secondary)" 
-                 tickFormatter={(val) => `${symbol}${(val / 1000).toFixed(1)}k`}
-                 domain={['auto', 'auto']}
+                 tickFormatter={(val) => val >= 1000 ? `${symbol}${(val / 1000).toFixed(1)}k` : `${symbol}${val.toFixed(0)}`}
+                 domain={[
+                    (dataMin: number) => (dataMin - Math.abs(dataMin) * 0.05), 
+                    (dataMax: number) => (dataMax + Math.abs(dataMax) * 0.05)
+                 ]}
                  tick={{fontSize: 12}}
                  dx={-10}
               />
