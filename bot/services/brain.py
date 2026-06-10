@@ -76,7 +76,7 @@ async def run_brain_synthesis():
                 # Compress with ScaleDown
                 compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
                 
-                response = await generate_completion(compressed_prompt, "You are a sharp financial analyst AI. Extract concise factual knowledge.")
+                response = await generate_completion(compressed_prompt, "You are a sharp financial analyst AI. Extract concise factual knowledge. DO NOT use markdown formatting (no bold, italics, or bullet points). Output plain text ONLY.")
                 
                 if response and response.get('content'):
                     knowledge = MarketKnowledge(
@@ -97,7 +97,7 @@ async def run_brain_synthesis():
                 prompt_instruction = f"Extract key macroeconomic insights and market-wide catalysts from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
                 compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
                 
-                response = await generate_completion(compressed_prompt, "You are a sharp macro-economic analyst AI. Extract concise factual knowledge.")
+                response = await generate_completion(compressed_prompt, "You are a sharp macro-economic analyst AI. Extract concise factual knowledge. DO NOT use markdown formatting (no bold, italics, or bullet points). Output plain text ONLY.")
                 
                 if response and response.get('content'):
                     knowledge = MarketKnowledge(
@@ -156,7 +156,7 @@ async def run_daily_compaction():
             prompt_instruction = f"You are compressing the AI Brain's memory for {ticker if ticker else 'Macro Market'}. Create a dense, highly informative Master Summary of the following accumulated facts. Discard noise, retain critical insights, trends, and catalysts."
             
             compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
-            response = await generate_completion(compressed_prompt, "You are an elite hedge fund knowledge manager. Create a dense Master Summary.")
+            response = await generate_completion(compressed_prompt, "You are an elite hedge fund knowledge manager. Create a dense Master Summary. DO NOT use markdown formatting (no bold, italics, or bullet points). Output plain text ONLY.")
             
             if response and response.get('content'):
                 # Archive the old items
