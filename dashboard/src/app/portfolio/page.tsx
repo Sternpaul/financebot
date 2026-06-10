@@ -128,12 +128,12 @@ export default async function Portfolio() {
       {!holdings || holdings.length === 0 ? (
         <div className="glass-panel">
           <p style={{ color: 'var(--text-secondary)' }}>Your portfolio ledger is currently empty. Start logging transactions!</p>
-          <PortfolioManager />
+          <PortfolioManager transactions={transactions || []} />
         </div>
       ) : (
         <>
           <PortfolioCharts holdingsWithPrices={holdingsWithPrices} transactions={transactions || []} exchangeRate={rate} />
-          <PortfolioManager />
+          <PortfolioManager transactions={transactions || []} />
           <HoldingsList holdings={holdingsWithPrices} exchangeRate={rate} />
         </>
       )}

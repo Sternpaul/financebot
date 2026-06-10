@@ -26,7 +26,28 @@ export async function addTransaction(type: string, ticker: string | null, shares
   return { success: true };
 }
 
-// Dynamically calculates current holdings from the transaction ledger
+// Bulk inserts transactions
+export async function importTransactions(transactionsList: any[]) {
+  const formatted = transactionsList.map(t => ({
+    type: t.type,
+    ticker: t.ticker ? t.ticker.toUpperCase() : null,
+    shares: t.shares,
+    price_per_share: t.price_per_share,
+    date: t.date,
+    account: 'main',
+    currency: 'USD'
+  }));
+
+  const { error } = await supabase.from('transactions').insert(formatted);
+  
+  if (error) {
+    console.error("Error bulk adding transactions", error);
+    return { success: false, error: error.message };
+  }
+  
+  revalidatePath('/portfolio');
+  return { success: true };
+}
 export async function getHoldings() {
   const { data: transactions, error } = await supabase
     .from('transactions')

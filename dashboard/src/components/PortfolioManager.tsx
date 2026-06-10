@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { addTransaction, getHistoricalPrice, searchTickers } from "@/app/portfolio/actions";
+import { addTransaction, getHistoricalPrice, searchTickers, importTransactions } from "@/app/portfolio/actions";
 import { useAppContext } from "./AppContext";
+import Papa from "papaparse";
 
-export default function PortfolioManager() {
+export default function PortfolioManager({ transactions = [] }: { transactions?: any[] }) {
   const { currency } = useAppContext();
   const isEur = currency === 'EUR';
   const symbol = isEur ? '€' : '$';
@@ -87,11 +88,102 @@ export default function PortfolioManager() {
     });
   };
 
+  const handleExport = () => {
+    if (!transactions || transactions.length === 0) {
+      alert("No transactions to export.");
+      return;
+    }
+    
+    // Map to industry standard generic format
+    const csvData = transactions.map(t => ({
+      Date: t.date,
+      Type: t.type,
+      Symbol: t.ticker || 'USD',
+      Shares: t.shares,
+      Price: t.price_per_share
+    }));
+    
+    const csvStr = Papa.unparse(csvData);
+    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `portfolio_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    startTransition(() => {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          try {
+            const parsed = results.data.map((row: any) => {
+              // Extract fields accommodating different standard headers (Yahoo Finance vs Ours)
+              const symbol = row['Symbol'] || row['Ticker'] || '';
+              const date = row['Date'] || row['Trade Date'] || row['date'] || new Date().toISOString();
+              const price = parseFloat(row['Price'] || row['Purchase Price'] || row['price_per_share'] || '0');
+              const rawShares = parseFloat(row['Shares'] || row['Quantity'] || row['shares'] || '0');
+              let type = (row['Type'] || row['Action'] || row['type'] || '').toUpperCase();
+
+              // Infer type if missing (e.g. standard Yahoo Finance exports)
+              if (!type) {
+                 if (symbol.toUpperCase() === 'USD' || symbol === '') {
+                     type = rawShares > 0 ? 'CASH_ADD' : 'CASH_REMOVE';
+                 } else {
+                     type = rawShares >= 0 ? 'BUY' : 'SELL';
+                 }
+              }
+              
+              const isCash = type === 'CASH_ADD' || type === 'CASH_REMOVE';
+              
+              return {
+                type,
+                ticker: isCash ? null : symbol,
+                shares: isCash ? null : Math.abs(rawShares),
+                price_per_share: Math.abs(price) || Math.abs(rawShares), // fallback for cash
+                date
+              };
+            });
+            
+            const res = await importTransactions(parsed);
+            if (!res.success) {
+                alert("Failed to import CSV: " + res.error);
+            } else {
+                alert(`Successfully imported ${parsed.length} transactions!`);
+            }
+          } catch (err) {
+            alert("Error parsing CSV. Please ensure the format is correct.");
+          }
+          // Reset file input
+          if (e.target) e.target.value = '';
+        }
+      });
+    });
+  };
+
   const isCash = type === 'CASH_ADD' || type === 'CASH_REMOVE';
 
   return (
     <div className="glass-panel" style={{ marginBottom: '40px' }}>
-      <h3 style={{ marginTop: 0, color: 'var(--foreground)' }}>Log Transaction</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+        <h3 style={{ margin: 0, color: 'var(--foreground)' }}>Log Transaction</h3>
+        <div style={{ display: 'flex', gap: '10px' }}>
+            <input type="file" accept=".csv" id="csv-upload" style={{ display: 'none' }} onChange={handleImport} />
+            <button type="button" onClick={() => document.getElementById('csv-upload')?.click()} disabled={isPending} style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', padding: '6px 12px', fontSize: '0.85rem' }}>
+              Import CSV
+            </button>
+            <button type="button" onClick={handleExport} style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', padding: '6px 12px', fontSize: '0.85rem' }}>
+              Export CSV
+            </button>
+        </div>
+      </div>
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: '0 0 auto' }}>
