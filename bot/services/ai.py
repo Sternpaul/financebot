@@ -58,33 +58,42 @@ async def generate_completion(prompt: str, system_prompt: str = "You are a helpf
         logger.error("No LLM API key configured.")
         return None
         
-    try:
-        async with aiohttp.ClientSession() as session:
-            payload = {
-                "model": config.llm_model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ]
-            }
-            headers = {
-                "Authorization": f"Bearer {config.llm_api_key}",
-                "HTTP-Referer": "https://github.com/Sternpaul/financebot",
-                "Content-Type": "application/json"
-            }
-            async with session.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=60) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    content = data['choices'][0]['message']['content']
-                    usage = data.get('usage', {})
-                    return {
-                        "content": content,
-                        "usage": usage
-                    }
-                else:
-                    err_text = await response.text()
-                    logger.error(f"OpenRouter API failed: {response.status} - {err_text}")
-                    return None
-    except Exception as e:
-        logger.error(f"OpenRouter generation failed: {e}")
+    models_to_try = [
+        config.llm_model,
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "google/gemma-4-31b-it:free",
+        "openrouter/owl-alpha"
+    ]
+    
+    async with aiohttp.ClientSession() as session:
+        for model in models_to_try:
+            try:
+                payload = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+                headers = {
+                    "Authorization": f"Bearer {config.llm_api_key}",
+                    "HTTP-Referer": "https://github.com/Sternpaul/financebot",
+                    "Content-Type": "application/json"
+                }
+                async with session.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=60) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        content = data['choices'][0]['message']['content']
+                        usage = data.get('usage', {})
+                        return {
+                            "content": content,
+                            "usage": usage
+                        }
+                    else:
+                        err_text = await response.text()
+                        logger.warning(f"OpenRouter API failed for model {model}: {response.status} - {err_text}")
+            except Exception as e:
+                logger.warning(f"OpenRouter generation failed for model {model}: {e}")
+                
+        logger.error("All OpenRouter fallback models failed.")
         return None
