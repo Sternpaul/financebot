@@ -7,6 +7,7 @@ from sqlalchemy import select, delete
 from bot.db.database import AsyncSessionLocal
 from bot.db.models import NewsArticle, MarketKnowledge, Transaction
 from bot.services.ai import compress_with_scaledown, generate_completion
+from bot.services.news import log_ingestion
 from bot.config import get_worker_config
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ async def run_brain_synthesis():
         
         if not recent_news:
             logger.info("No new articles to synthesize.")
+            await log_ingestion('ai_brain', 'synthesis', 'NO_NEW_DATA', 'No new articles to synthesize in the last hour.')
             return
 
         # Group by mentioned tickers
@@ -51,6 +53,7 @@ async def run_brain_synthesis():
             else:
                 macro_news.append(article)
 
+        synthesized_count = 0
         # Synthesize Ticker-Specific Knowledge
         for ticker, articles in ticker_news.items():
             if len(articles) == 0:
@@ -75,6 +78,7 @@ async def run_brain_synthesis():
                 session.add(knowledge)
                 await session.commit()
                 logger.info(f"Synthesized knowledge for {ticker}")
+                synthesized_count += 1
                 
         # Synthesize Macro Knowledge
         if macro_news:
@@ -94,6 +98,12 @@ async def run_brain_synthesis():
                 session.add(knowledge)
                 await session.commit()
                 logger.info("Synthesized macro knowledge")
+                synthesized_count += 1
+
+        if synthesized_count > 0:
+            await log_ingestion('ai_brain', 'synthesis', 'SUCCESS', f'Synthesized {synthesized_count} new market knowledge entities from {len(recent_news)} articles.')
+        else:
+            await log_ingestion('ai_brain', 'synthesis', 'ERROR', f'Failed to synthesize any knowledge from {len(recent_news)} articles. AI may have returned empty.')
 
     logger.info("Brain Synthesis cycle completed.")
 

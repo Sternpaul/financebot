@@ -85,16 +85,10 @@ async def start_telegram_streaming():
             message_id = event.message.id
             url = f"https://t.me/{sender_handle}/{message_id}"
             
-            from bot.services.news import is_duplicate_article
-            from datetime import datetime, timedelta, timezone
-            
             async with AsyncSessionLocal() as session:
-                cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
-                result = await session.execute(select(NewsArticle.content, NewsArticle.title).where(NewsArticle.posted_at >= cutoff))
-                recent_articles = result.all()
-                
-                is_dup = is_duplicate_article(content_text, recent_articles)
-                if is_dup:
+                check_stmt = select(NewsArticle.id).where(NewsArticle.url == url)
+                exists = await session.execute(check_stmt)
+                if exists.scalars().first():
                     await log_ingestion('telegram', sender_handle, 'NO_NEW_DATA', f"Duplicate skipped: {message_id}")
                     return
             
