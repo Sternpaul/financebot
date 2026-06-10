@@ -39,7 +39,7 @@ export default function ChatWidget() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages.filter(m => m.role !== 'system') }),
+        body: JSON.stringify({ messages: newMessages }),
       });
 
       if (!res.ok) throw new Error('Network error');
