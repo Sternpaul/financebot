@@ -1,10 +1,10 @@
+import os
 import asyncio
 import logging
 from datetime import datetime, timezone
 from telethon import TelegramClient
 from sqlalchemy import select
 
-from bot.config import settings
 from bot.db.database import AsyncSessionLocal
 from bot.db.models import ContentSource, NewsArticle
 from bot.services.news import extract_tickers_aggressively, get_active_tickers
@@ -12,11 +12,14 @@ from bot.services.news import extract_tickers_aggressively, get_active_tickers
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+API_ID = os.getenv("TELEGRAM_API_ID")
+API_HASH = os.getenv("TELEGRAM_API_HASH")
+
 async def backfill():
     client = TelegramClient(
         'sessions/financebot', 
-        settings.telegram_api_id, 
-        settings.telegram_api_hash
+        int(API_ID) if API_ID else 0, 
+        API_HASH
     )
     
     await client.connect()
