@@ -44,8 +44,8 @@ def extract_tickers_aggressively(text: str, active_tickers: list[str]) -> list[s
             found.add(w)
     return list(found)
 
-async def ingest_rsshub_sources():
-    """Fetches Telegram and Substack feeds via RSSHub."""
+async def ingest_custom_sources():
+    """Fetches Telegram natively and Substack via their RSS feeds."""
     async with get_session() as session:
         stmt = select(ContentSource).where(
             ContentSource.is_active == True, 
@@ -57,7 +57,6 @@ async def ingest_rsshub_sources():
     if not sources:
         return
 
-    # Fetch all watchlist tickers for extraction
     async with get_session() as session:
         result = await session.execute(select(Watchlist.ticker))
         active_tickers = [r for r in result.scalars().all()]
@@ -66,44 +65,74 @@ async def ingest_rsshub_sources():
     async with aiohttp.ClientSession() as http_session:
         for source in sources:
             clean_handle = sanitize_handle(source.handle, source.platform)
-            if source.platform == 'telegram':
-                url = f"{config.rsshub_url}/telegram/channel/{clean_handle}"
-            elif source.platform == 'substack':
+            
+            if source.platform == 'substack':
                 url = f"https://{clean_handle}.substack.com/feed"
-            else:
-                continue
-                
-            try:
-                async with http_session.get(url, timeout=30) as resp:
-                    if resp.status == 200:
-                        xml_data = await resp.text()
-                        feed = feedparser.parse(xml_data)
-                        
-                        for entry in feed.entries[:20]: # Top 20 recent
-                            try:
-                                posted_at = parser.parse(entry.published)
-                            except:
-                                posted_at = datetime.now(timezone.utc)
-                            
-                            content_text = entry.get('description', '')[:2000]
-                            title_text = entry.get('title', '')
-                            
-                            # Aggressive extraction
-                            found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
-                            
-                            article = NewsArticle(
-                                source_platform=source.platform,
-                                source_handle=source.handle,
-                                author_name=entry.get('author', source.handle),
-                                title=title_text,
-                                content=content_text, # Limit content length
-                                url=entry.link,
-                                posted_at=posted_at,
-                                tickers_mentioned=found_tickers if found_tickers else None
-                            )
-                            new_articles.append(article)
-            except Exception as e:
-                logger.error(f"Error fetching RSSHub for {source.handle}: {type(e).__name__} {e}")
+                try:
+                    async with http_session.get(url, timeout=30) as resp:
+                        if resp.status == 200:
+                            xml_data = await resp.text()
+                            feed = feedparser.parse(xml_data)
+                            for entry in feed.entries[:20]:
+                                try:
+                                    posted_at = parser.parse(entry.published)
+                                except:
+                                    posted_at = datetime.now(timezone.utc)
+                                content_text = entry.get('description', '')[:2000]
+                                title_text = entry.get('title', '')
+                                found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
+                                article = NewsArticle(
+                                    source_platform=source.platform,
+                                    source_handle=source.handle,
+                                    author_name=entry.get('author', source.handle),
+                                    title=title_text,
+                                    content=content_text,
+                                    url=entry.link,
+                                    posted_at=posted_at,
+                                    tickers_mentioned=found_tickers if found_tickers else None
+                                )
+                                new_articles.append(article)
+                        else:
+                            logger.error(f"Substack feed returned status {resp.status} for {source.handle}")
+                except Exception as e:
+                    logger.error(f"Error fetching Substack for {source.handle}: {type(e).__name__} {e}")
+
+            elif source.platform == 'telegram':
+                url = f"https://t.me/s/{clean_handle}"
+                try:
+                    async with http_session.get(url, timeout=30) as resp:
+                        if resp.status == 200:
+                            html_data = await resp.text()
+                            # Native regex parsing of Telegram web view
+                            messages = re.findall(r'<div class="tgme_widget_message_wrap[^>]*>([\s\S]*?)<\/div>(?=\s*<div class="tgme_widget_message_wrap|$)', html_data)
+                            for msg_html in reversed(messages): # Process from oldest to newest in the chunk
+                                text_match = re.search(r'<div class="tgme_widget_message_text[^>]*>(.*?)<\/div>', msg_html, re.DOTALL)
+                                time_match = re.search(r'<time datetime="([^"]+)"', msg_html)
+                                link_match = re.search(r'<a class="tgme_widget_message_date" href="([^"]+)"', msg_html)
+                                
+                                if text_match and time_match and link_match:
+                                    content_text = text_match.group(1).strip()
+                                    try:
+                                        posted_at = parser.parse(time_match.group(1))
+                                    except:
+                                        posted_at = datetime.now(timezone.utc)
+                                        
+                                    found_tickers = extract_tickers_aggressively(content_text, active_tickers)
+                                    article = NewsArticle(
+                                        source_platform=source.platform,
+                                        source_handle=source.handle,
+                                        author_name=source.handle,
+                                        title="", # Telegram doesn't usually have titles
+                                        content=content_text[:2000],
+                                        url=link_match.group(1),
+                                        posted_at=posted_at,
+                                        tickers_mentioned=found_tickers if found_tickers else None
+                                    )
+                                    new_articles.append(article)
+                        else:
+                            logger.error(f"Telegram returned status {resp.status} for {source.handle}")
+                except Exception as e:
+                    logger.error(f"Error fetching Telegram for {source.handle}: {type(e).__name__} {e}")
 
     async with get_session() as session:
         for article in new_articles:
