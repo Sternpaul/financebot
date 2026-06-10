@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-type ContentSource = {
-  id: number;
+interface ContentSource {
+  id: number | string;
   platform: string;
   handle: string;
   is_active: boolean;
   is_core: boolean;
+  db_id?: number;
 };
 
 export default function SourcesManager() {
