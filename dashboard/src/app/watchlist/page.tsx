@@ -30,6 +30,8 @@ export default async function WatchlistPage() {
         let price = 0;
         let pctChange = 0;
         let longName = h.name;
+        let marketState = 'UNKNOWN';
+        let regularMarketStart = 0;
 
         if (s && s.response && s.response[0]) {
             const meta = s.response[0].meta;
@@ -40,6 +42,17 @@ export default async function WatchlistPage() {
                     pctChange = ((price - prevClose) / prevClose) * 100;
                 }
                 longName = meta.shortName || meta.longName || longName;
+                
+                if (meta.currentTradingPeriod) {
+                  const now = Math.floor(Date.now() / 1000);
+                  const p = meta.currentTradingPeriod;
+                  if (p.regular && now >= p.regular.start && now < p.regular.end) marketState = 'OPEN';
+                  else if (p.pre && now >= p.pre.start && now < p.pre.end) marketState = 'PRE';
+                  else if (p.post && now >= p.post.start && now < p.post.end) marketState = 'POST';
+                  else marketState = 'CLOSED';
+                  
+                  regularMarketStart = p.regular?.start || 0;
+                }
             }
             if (s.response[0].indicators && s.response[0].indicators.quote) {
                 const closePrices = s.response[0].indicators.quote[0].close;
@@ -56,12 +69,14 @@ export default async function WatchlistPage() {
           longName,
           sparkline,
           avg_cost: 0,
-          shares: 0
+          shares: 0,
+          marketState,
+          regularMarketStart
         };
       });
     } catch (err) {
       console.error(err);
-      watchlistWithPrices = watchlist.map(h => ({ ...h, currentPrice: 0, pctChange: 0, longName: h.name, sparkline: [], avg_cost: 0, shares: 0 }));
+      watchlistWithPrices = watchlist.map((h: any) => ({ ...h, currentPrice: 0, pctChange: 0, longName: h.name, sparkline: [], avg_cost: 0, shares: 0, marketState: 'UNKNOWN', regularMarketStart: 0 }));
     }
   }
 
