@@ -231,6 +231,6 @@ async def ingest_watchlist_news():
 async def run_news_ingestion():
     logger.info("Starting news ingestion cycle...")
     await cleanup_old_articles()
-    await ingest_rsshub_sources()
+    await ingest_custom_sources()
     await ingest_watchlist_news()
     logger.info("News ingestion cycle completed.")
