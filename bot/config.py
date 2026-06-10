@@ -35,9 +35,17 @@ class WorkerConfig(SharedConfig):
     llm_provider: str = Field("openrouter", alias="LLM_PROVIDER")
     llm_api_key: Optional[str] = Field(None, alias="LLM_API_KEY")
     llm_model: str = Field("nex-agi/nex-n2-pro:free", alias="LLM_MODEL")
+    llm_fallback_models: str = Field("nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,openrouter/owl-alpha", alias="LLM_FALLBACK_MODELS")
     scaledown_api_key: Optional[str] = Field(None, alias="SCALEDOWN_API_KEY")
     embedding_provider: str = Field("openai", alias="EMBEDDING_PROVIDER")
     openai_api_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
+
+    # Cron Job Intervals
+    cron_alerts_interval_minutes: int = Field(1, alias="CRON_ALERTS_INTERVAL_MINUTES")
+    cron_news_interval_minutes: int = Field(1, alias="CRON_NEWS_INTERVAL_MINUTES")
+    cron_telegram_backup_hours: int = Field(1, alias="CRON_TELEGRAM_BACKUP_HOURS")
+    cron_brain_synthesis_minutes: int = Field(30, alias="CRON_BRAIN_SYNTHESIS_MINUTES")
+    cron_brain_compaction_hours: int = Field(24, alias="CRON_BRAIN_COMPACTION_HOURS")
 
     # Integrations
     rsshub_url: str = Field("http://rsshub:1200", alias="RSSHUB_URL")
@@ -57,6 +65,10 @@ class WorkerConfig(SharedConfig):
     @property
     def twitter_handles_list(self) -> List[str]:
         return [h.strip() for h in self.fintwit_twitter_handles.split(',') if h.strip()]
+
+    @property
+    def fallback_models_list(self) -> List[str]:
+        return [m.strip() for m in self.llm_fallback_models.split(',') if m.strip()]
 
 # Global lazy instances. Use get_bot_config() or get_worker_config()
 _bot_config = None

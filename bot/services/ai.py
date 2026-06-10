@@ -58,12 +58,7 @@ async def generate_completion(prompt: str, system_prompt: str = "You are a helpf
         logger.error("No LLM API key configured.")
         return None
         
-    models_to_try = [
-        config.llm_model,
-        "nvidia/nemotron-3-ultra-550b-a55b:free",
-        "google/gemma-4-31b-it:free",
-        "openrouter/owl-alpha"
-    ]
+    models_to_try = [config.llm_model] + config.fallback_models_list
     
     async with aiohttp.ClientSession() as session:
         for model in models_to_try:

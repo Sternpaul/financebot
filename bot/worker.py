@@ -68,22 +68,20 @@ async def main():
     from bot.services.brain import run_brain_synthesis, generate_morning_report, run_daily_compaction
     
     # Add jobs to scheduler
-    # Technical Alerts Engine (Every 1 minute for real-time checking)
-    scheduler.add_job(run_technical_alerts_check, 'interval', minutes=1, args=[redis])
+    # Technical Alerts Engine
+    scheduler.add_job(run_technical_alerts_check, 'interval', minutes=config.cron_alerts_interval_minutes, args=[redis])
     
-
-
-    # News Ingestion Engine (Every 1 minute)
-    scheduler.add_job(run_news_ingestion, 'interval', minutes=1)
+    # News Ingestion Engine
+    scheduler.add_job(run_news_ingestion, 'interval', minutes=config.cron_news_interval_minutes)
     
-    # Telegram Backup Sync (Every 1 hour)
-    scheduler.add_job(run_telegram_backfill_check, 'interval', hours=1, args=[redis])
+    # Telegram Backup Sync
+    scheduler.add_job(run_telegram_backfill_check, 'interval', hours=config.cron_telegram_backup_hours, args=[redis])
     
     # New Phase 5 jobs
-    scheduler.add_job(run_brain_synthesis, 'interval', minutes=30)
+    scheduler.add_job(run_brain_synthesis, 'interval', minutes=config.cron_brain_synthesis_minutes)
     
     # Daily Compaction
-    scheduler.add_job(run_daily_compaction, 'interval', hours=24)
+    scheduler.add_job(run_daily_compaction, 'interval', hours=config.cron_brain_compaction_hours)
     
     # Morning report scheduling
     report_time = config.morning_report_time.split(":")
