@@ -120,15 +120,14 @@ async def ingest_watchlist_news():
         result = await session.execute(stmt)
         watchlists = result.scalars().all()
     
-    # Check if General Market News is active in content_sources
+    # Check all active general market indices (yfinance platform in content_sources)
     async with get_session() as session:
         stmt = select(ContentSource).where(
             ContentSource.platform == 'yfinance',
-            ContentSource.handle == 'GeneralMarket',
             ContentSource.is_active == True
         )
         result = await session.execute(stmt)
-        general_active = result.scalars().first() is not None
+        general_active_sources = result.scalars().all()
         
         # Also get active tickers for extraction
         result2 = await session.execute(select(Watchlist.ticker))
@@ -145,10 +144,10 @@ async def ingest_watchlist_news():
                 "base_ticker": [w.ticker]
             })
             
-        if general_active:
+        for g_source in general_active_sources:
             urls_to_fetch.append({
-                "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI,^IXIC&region=US&lang=en-US",
-                "handle": "GeneralMarket",
+                "url": f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={g_source.handle}&region=US&lang=en-US",
+                "handle": g_source.handle,
                 "base_ticker": []
             })
             

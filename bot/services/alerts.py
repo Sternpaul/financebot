@@ -11,21 +11,89 @@ from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
-async def fetch_yahoo_quotes(symbols: List[str]) -> list:
+import os
+
+# API Provider Rotation state
+current_provider_idx = 0
+
+async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
+    global current_provider_idx
     if not symbols:
         return []
-    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={','.join(symbols)}"
+        
+    providers = ["polygon", "finnhub", "yahoo"]
+    provider = providers[current_provider_idx % len(providers)]
+    current_provider_idx += 1
+    
+    quotes = []
+    
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("quoteResponse", {}).get("result", [])
-                else:
-                    logger.error(f"Yahoo API error: {resp.status}")
-        except Exception as e:
-            logger.error(f"Failed to fetch quotes: {e}")
-    return []
+        if provider == "polygon":
+            api_key = os.getenv("POLYGON_API_KEY", "")
+            if api_key and api_key != "your_polygon_key":
+                try:
+                    url = f"https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers={','.join(symbols)}&apiKey={api_key}"
+                    async with session.get(url, timeout=10) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            for ticker_data in data.get("tickers", []):
+                                quotes.append({
+                                    "symbol": ticker_data.get("ticker"),
+                                    "regularMarketPrice": ticker_data.get("day", {}).get("c", 0),
+                                    "regularMarketChangePercent": ticker_data.get("todaysChangePerc", 0),
+                                    "regularMarketVolume": ticker_data.get("day", {}).get("v", 0),
+                                    "averageDailyVolume10Day": ticker_data.get("day", {}).get("v", 0) # approximation
+                                })
+                            return quotes
+                        else:
+                            logger.error(f"Polygon API Error: {resp.status}. Falling back.")
+                except Exception as e:
+                    logger.error(f"Polygon Fetch Error: {e}")
+            # Fallthrough if Polygon fails or no key
+            provider = "finnhub"
+            
+        if provider == "finnhub":
+            api_key = os.getenv("FINNHUB_API_KEY", "")
+            if api_key and api_key != "your_finnhub_key":
+                try:
+                    for symbol in symbols:
+                        url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}"
+                        async with session.get(url, timeout=10) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                if "c" in data and data["c"] != 0:
+                                    quotes.append({
+                                        "symbol": symbol,
+                                        "regularMarketPrice": data.get("c", 0),
+                                        "regularMarketChangePercent": data.get("dp", 0),
+                                        "regularMarketVolume": 0, # Finnhub quote doesn't provide real-time volume in this endpoint
+                                        "averageDailyVolume10Day": 1
+                                    })
+                            else:
+                                logger.error(f"Finnhub API Error: {resp.status} for {symbol}. Falling back.")
+                                provider = "yahoo"
+                                break
+                    if provider == "finnhub": # Success
+                        return quotes
+                except Exception as e:
+                    logger.error(f"Finnhub Fetch Error: {e}")
+            # Fallthrough if Finnhub fails
+            provider = "yahoo"
+            
+        if provider == "yahoo":
+            try:
+                url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={','.join(symbols)}"
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                async with session.get(url, headers=headers, timeout=10) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data.get("quoteResponse", {}).get("result", [])
+                    else:
+                        logger.error(f"Yahoo API error: {resp.status}")
+            except Exception as e:
+                logger.error(f"Failed to fetch quotes from Yahoo: {e}")
+                
+    return quotes
 
 async def run_technical_alerts_check(redis_client: Redis):
     """
@@ -48,7 +116,7 @@ async def run_technical_alerts_check(redis_client: Redis):
         symbols = [w.ticker for w in watchlists]
         alerts_map = {w.ticker: w.custom_alerts or {} for w in watchlists}
         
-        quotes = await fetch_yahoo_quotes(symbols)
+        quotes = await fetch_quotes_with_rotation(symbols)
         
         for quote in quotes:
             symbol = quote.get("symbol")
