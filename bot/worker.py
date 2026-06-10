@@ -71,6 +71,8 @@ async def main():
     # Technical Alerts Engine (Every 1 minute for real-time checking)
     scheduler.add_job(run_technical_alerts_check, 'interval', minutes=1, args=[redis])
     
+
+
     # News Ingestion Engine (Every 1 minute)
     scheduler.add_job(run_news_ingestion, 'interval', minutes=1)
     

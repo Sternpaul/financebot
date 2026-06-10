@@ -60,6 +60,10 @@ async def on_ready():
 
     # Start the Redis Stream consumer loop in the background
     bot.loop.create_task(consume_redis_streams())
+    
+    # Start the Telegram streaming client
+    from bot.telegram_client import start_telegram_streaming
+    bot.loop.create_task(start_telegram_streaming())
 
 async def consume_redis_streams():
     """Consume alerts and reports from worker."""

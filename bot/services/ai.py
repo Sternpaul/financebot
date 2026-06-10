@@ -54,8 +54,8 @@ async def generate_completion(prompt: str, system_prompt: str = "You are a helpf
     Returns a dictionary containing 'content' and 'usage' (prompt_tokens, completion_tokens).
     """
     config = get_worker_config()
-    if not config.openrouter_api_key:
-        logger.error("No OpenRouter API key found.")
+    if not config.llm_api_key:
+        logger.error("No LLM API key configured.")
         return None
         
     try:
@@ -68,7 +68,7 @@ async def generate_completion(prompt: str, system_prompt: str = "You are a helpf
                 ]
             }
             headers = {
-                "Authorization": f"Bearer {config.openrouter_api_key}",
+                "Authorization": f"Bearer {config.llm_api_key}",
                 "HTTP-Referer": "https://github.com/Sternpaul/financebot",
                 "Content-Type": "application/json"
             }
