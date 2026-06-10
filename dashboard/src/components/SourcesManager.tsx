@@ -58,6 +58,7 @@ export default function SourcesManager() {
         >
           <option value="telegram">Telegram</option>
           <option value="substack">Substack</option>
+          <option value="yfinance">Traditional News</option>
         </select>
         <input 
           type="text" 
