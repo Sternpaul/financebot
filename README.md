@@ -49,11 +49,10 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 
 ## 🚧 What Needs Work (Next Steps & Roadmap)
 
-**Phase 5: The AI & RAG Ideation Engine (Highest Priority)**
-Currently, we ingest hundreds of Telegram messages and Substack newsletters daily. We have configured the database to retain extended historical text data (500MB+ capacity) for deep analysis. We will implement **Semantic Search**:
-- **Chunking & Embeddings**: Chunk all ingested text and use an LLM API to create vector embeddings stored in our `pgvector` database.
-- **Semantic Research Hub**: Open a new "Research" tab on the dashboard to query your data semantically (e.g., *"What is the general sentiment on tech earnings right now?"*). The AI will scan all your alpha channels and reports instantly to synthesize an answer.
-- **Natural Language Chat**: Add a chat interface where an LLM agent has access to your portfolio, watchlist, and live market data.
+**Phase 5: The Recursive AI Brain & Ingestion Engine (✅ Completed)**
+- **Real-Time Telegram Streaming**: Telethon WebSocket listeners ingest alpha channels instantly, backed by an hourly fallback polling engine to ensure perfect sync.
+- **Short-Term Memory (30-Min Cycles)**: New articles and alerts are clustered by ticker and compressed via the `ScaleDown` API. The AI (using OpenRouter with a robust 4-model fallback rotation) extracts pure factual catalysts, sentiment shifts, and risks, storing them in a dense plain-text format.
+- **Long-Term Memory Compaction**: Every 24 hours, the AI Brain gathers all 30-minute memories for a ticker and recursively compresses them into a single, highly-dense "Master Summary". Old memories are then archived, ensuring the active "Brain" size stays strictly small and token-efficient while retaining all historical facts forever.
 
 **Phase 7: Execution & Automation Hooks (Optional but Powerful)**
 - **Automated Trading**: Allow technical alerts to trigger outbound webhooks (e.g., automatically firing a limit buy order via Binance or Hyperliquid when an asset drops 5% in volume).
