@@ -38,10 +38,11 @@ async def backfill():
         active_tickers = await get_active_tickers(session)
         
         for source in sources:
-            logger.info(f"Backfilling {source.handle}...")
+            source_handle = source.handle
+            logger.info(f"Backfilling {source_handle}...")
             try:
                 # get entity
-                entity = await client.get_entity(source.handle)
+                entity = await client.get_entity(source_handle)
                 count = 0
                 async for message in client.iter_messages(entity, limit=20):
                     if not message.text:
@@ -53,7 +54,7 @@ async def backfill():
                     # Check if already exists (naive check by time/content)
                     check_stmt = select(NewsArticle.id).where(
                         NewsArticle.source_platform == 'telegram',
-                        NewsArticle.source_handle == source.handle,
+                        NewsArticle.source_handle == source_handle,
                         NewsArticle.posted_at == message.date
                     )
                     exists = await session.execute(check_stmt)
@@ -62,11 +63,11 @@ async def backfill():
                         
                     article = NewsArticle(
                         source_platform='telegram',
-                        source_handle=source.handle,
-                        author_name=source.handle,
+                        source_handle=source_handle,
+                        author_name=source_handle,
                         title='',
                         content=content_text,
-                        url=f"https://t.me/{source.handle}/{message.id}",
+                        url=f"https://t.me/{source_handle}/{message.id}",
                         posted_at=message.date,
                         tickers_mentioned=found_tickers if found_tickers else None
                     )
@@ -77,9 +78,9 @@ async def backfill():
                     except Exception:
                         await session.rollback()
                 
-                logger.info(f"Inserted {count} new messages for {source.handle}")
+                logger.info(f"Inserted {count} new messages for {source_handle}")
             except Exception as e:
-                logger.error(f"Failed to backfill {source.handle}: {e}")
+                logger.error(f"Failed to backfill {source_handle}: {e}")
 
     await client.disconnect()
 
