@@ -161,8 +161,10 @@ Format the response as a beautiful Markdown report with:
         
         if report:
             logger.info("Morning report generated successfully.")
-            # Dispatch to Discord
-            from bot.discord_client import send_discord_message
-            await send_discord_message(report, title="🌅 Morning Briefing")
+            import redis.asyncio as redis
+            from bot.config import get_worker_config
+            r = redis.Redis.from_url(get_worker_config().redis_url)
+            await r.xadd("reports", {"title": "🌅 Morning Briefing", "content": report})
+            await r.aclose()
         else:
             logger.error("Failed to generate morning report.")

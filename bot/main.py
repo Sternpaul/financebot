@@ -114,6 +114,25 @@ async def consume_redis_streams():
                                 await channel.send(embed=embed, view=view)
                             except Exception as e:
                                 logger.error(f"Error parsing alert payload: {e}")
+                                
+                        elif channel and stream == "reports":
+                            try:
+                                report_data = {k.decode('utf-8'): v.decode('utf-8') for k, v in data.items()}
+                                title = report_data.get("title", "Report")
+                                content = report_data.get("content", "")
+                                
+                                # Discord embeds have a 4096 character limit for descriptions
+                                if len(content) > 4000:
+                                    content = content[:4000] + "..."
+                                
+                                embed = discord.Embed(
+                                    title=title,
+                                    description=content,
+                                    color=discord.Color.blue()
+                                )
+                                await channel.send(embed=embed)
+                            except Exception as e:
+                                logger.error(f"Error parsing report payload: {e}")
                         
                         # Acknowledge message
                         await redis.xack(stream_name, "bot_group", message_id)
