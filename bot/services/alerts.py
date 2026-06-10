@@ -82,29 +82,35 @@ async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
             
         if provider == "yahoo":
             try:
-                def _fetch_yf():
-                    import yfinance as yf
-                    res = []
-                    for s in symbols:
-                        try:
-                            info = yf.Ticker(s).fast_info
-                            last_price = info.last_price
-                            prev_close = info.previous_close
-                            change_pct = ((last_price - prev_close) / prev_close * 100) if prev_close else 0
-                            res.append({
-                                "symbol": s,
-                                "regularMarketPrice": last_price,
-                                "regularMarketChangePercent": change_pct,
-                                "regularMarketVolume": info.last_volume,
-                                "averageDailyVolume10Day": info.ten_day_average_volume or 1
-                            })
-                        except Exception as e:
-                            logger.error(f"yfinance error for {s}: {e}")
-                    return res
-
-                # Run blocking yfinance in thread
-                data = await asyncio.to_thread(_fetch_yf)
-                return data
+                # We use direct API instead of yfinance because of rate limit / User-Agent blocks
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                for s in symbols:
+                    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{s}?interval=1d&range=2d"
+                    async with session.get(url, headers=headers, timeout=10) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            try:
+                                result = data["chart"]["result"][0]
+                                meta = result["meta"]
+                                
+                                last_price = meta.get("regularMarketPrice", 0)
+                                prev_close = meta.get("previousClose", last_price)
+                                change_pct = ((last_price - prev_close) / prev_close * 100) if prev_close else 0
+                                
+                                quotes.append({
+                                    "symbol": s,
+                                    "regularMarketPrice": last_price,
+                                    "regularMarketChangePercent": change_pct,
+                                    "regularMarketVolume": meta.get("regularMarketVolume", 0),
+                                    "averageDailyVolume10Day": meta.get("regularMarketVolume", 1) # Fallback to current vol
+                                })
+                            except (KeyError, IndexError, TypeError):
+                                logger.error(f"Failed to parse Yahoo data for {s}")
+                        else:
+                            logger.error(f"Yahoo API Error: {resp.status} for {s}")
+                
+                if quotes:
+                    return quotes
             except Exception as e:
                 logger.error(f"Failed to fetch quotes from Yahoo: {e}")
                 
