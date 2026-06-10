@@ -76,8 +76,8 @@ async def main():
     # News Ingestion Engine (Every 1 minute)
     scheduler.add_job(run_news_ingestion, 'interval', minutes=1)
     
-    # Telegram Backfill Check (Every 1 minute)
-    scheduler.add_job(run_telegram_backfill_check, 'interval', minutes=1, args=[redis])
+    # Telegram Backup Sync (Every 1 hour)
+    scheduler.add_job(run_telegram_backfill_check, 'interval', hours=1, args=[redis])
     
     # New Phase 5 jobs
     scheduler.add_job(run_brain_synthesis, 'interval', minutes=30)
