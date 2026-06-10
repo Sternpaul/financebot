@@ -59,16 +59,11 @@ async def log_ingestion(source_platform: str, source_handle: str, status: str, m
 
 import difflib
 
-async def is_duplicate_article(session, text: str, time_window_hours: int = 12, threshold: float = 0.95) -> bool:
-    if not text or len(text.strip()) < 10:
+def is_duplicate_article(clean_text: str, recent_articles: list, threshold: float = 0.95) -> bool:
+    if not clean_text or len(clean_text.strip()) < 10:
         return False # Too short to deduplicate reliably
         
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=time_window_hours)
-    stmt = select(NewsArticle.content, NewsArticle.title).where(NewsArticle.posted_at >= cutoff)
-    result = await session.execute(stmt)
-    recent_articles = result.all()
-    
-    clean_text = text.lower().strip()
+    clean_text = clean_text.lower().strip()
     
     for content, title in recent_articles:
         existing_text = f"{title or ''} {content or ''}".lower().strip()
@@ -102,6 +97,11 @@ async def ingest_custom_sources():
         result = await session.execute(select(Watchlist.ticker))
         active_tickers = [r for r in result.scalars().all()]
 
+    async with get_session() as session:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+        result = await session.execute(select(NewsArticle.content, NewsArticle.title).where(NewsArticle.posted_at >= cutoff))
+        recent_articles = result.all()
+
     new_articles = []
     async with aiohttp.ClientSession() as http_session:
         for source in sources:
@@ -128,11 +128,10 @@ async def ingest_custom_sources():
                                 content_text = entry.get('description', '')[:2000]
                                 title_text = entry.get('title', '')
                                 
-                                async with get_session() as session:
-                                    is_dup = await is_duplicate_article(session, title_text + " " + content_text)
-                                    if is_dup:
-                                        await log_ingestion('substack', source.handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
-                                        continue
+                                is_dup = is_duplicate_article(title_text + " " + content_text, recent_articles)
+                                if is_dup:
+                                    await log_ingestion('substack', source.handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
+                                    continue
                                 
                                 found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
                                 article = NewsArticle(
@@ -183,6 +182,11 @@ async def ingest_watchlist_news():
         result2 = await session.execute(select(Watchlist.ticker))
         active_tickers = [r for r in result2.scalars().all()]
 
+    async with get_session() as session:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+        result = await session.execute(select(NewsArticle.content, NewsArticle.title).where(NewsArticle.posted_at >= cutoff))
+        recent_articles = result.all()
+
     async with aiohttp.ClientSession() as http_session:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         
@@ -226,11 +230,10 @@ async def ingest_watchlist_news():
                             content_text = entry.get('description', '') or entry.get('summary', '') or entry.get('title', '')
                             title_text = entry.get('title', '')
                             
-                            async with get_session() as session:
-                                is_dup = await is_duplicate_article(session, title_text + " " + content_text)
-                                if is_dup:
-                                    await log_ingestion('yfinance', handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
-                                    continue
+                            is_dup = is_duplicate_article(title_text + " " + content_text, recent_articles)
+                            if is_dup:
+                                await log_ingestion('yfinance', handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
+                                continue
                             
                             found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
                             combined_tickers = list(set(base_ticker + found_tickers))
