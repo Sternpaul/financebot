@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from bot.config import get_worker_config
 from bot.db.database import engine
+from bot.telegram_client import start_telegram_streaming
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -68,11 +69,14 @@ async def main():
     # Technical Alerts Engine (Every 1 minute for real-time checking)
     scheduler.add_job(run_technical_alerts_check, 'interval', minutes=1, args=[redis])
     
-    # News Ingestion Engine (Every 15 minutes)
-    scheduler.add_job(run_news_ingestion, 'interval', minutes=15)
+    # News Ingestion Engine (Every 1 minute)
+    scheduler.add_job(run_news_ingestion, 'interval', minutes=1)
     
-    # Run once immediately on startup so we don't have to wait 15 minutes for the first data
+    # Run once immediately on startup so we don't have to wait 1 minute for the first data
     asyncio.create_task(run_news_ingestion())
+    
+    # Start Telegram Telethon client for real-time WebSockets
+    asyncio.create_task(start_telegram_streaming())
     
     # Morning report
     # scheduler.add_job(send_morning_report, 'cron', day_of_week='mon-fri', hour='07', minute='30')

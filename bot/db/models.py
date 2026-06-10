@@ -69,6 +69,16 @@ class TechnicalAlert(Base):
     triggered_at = Column(DateTime(timezone=True), server_default=func.now())
     acknowledged = Column(Boolean, default=False)
 
+class IngestionLog(Base):
+    __tablename__ = 'ingestion_logs'
+    
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    source_platform = Column(String, nullable=False)
+    source_handle = Column(String, nullable=False)
+    status = Column(String, nullable=False) # 'SUCCESS', 'ERROR', 'NO_NEW_DATA'
+    message = Column(Text)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
 class IdeationDocument(Base):
     __tablename__ = 'ideation_documents'
 

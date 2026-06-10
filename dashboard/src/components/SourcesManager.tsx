@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import styles from "../app/page.module.css";
+import IngestionLogs from "./IngestionLogs";
 
 interface ContentSource {
   id: number | string;
@@ -204,6 +205,8 @@ export default function SourcesManager() {
         )})}
         {otherSources.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No specific sources configured yet.</p>}
       </div>
+      
+      <IngestionLogs />
     </div>
   );
 }
