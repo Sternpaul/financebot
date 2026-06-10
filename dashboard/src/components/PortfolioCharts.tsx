@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { useAppContext } from './AppContext';
 import { useMemo, useState, useEffect } from 'react';
 
-export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPrices: any[] }) {
+export default function PortfolioCharts({ holdingsWithPrices, transactions }: { holdingsWithPrices: any[], transactions?: any[] }) {
   const { currency } = useAppContext();
   const isEur = currency === 'EUR';
   const symbol = isEur ? '€' : '$';
@@ -40,7 +40,7 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
       }
       setIsFetching(true);
       
-      const symbols = holdingsWithPrices.map(h => {
+      const symbols = holdingsWithPrices.filter(h => !h.isCash).map(h => {
         const t = h.ticker.toUpperCase();
         return ['BTC', 'ETH', 'SOL', 'DOGE'].includes(t) ? `${t}-USD` : t;
       }).join(',');
@@ -58,9 +58,12 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
       const { range, interval } = rangeMap[timeRange] || rangeMap['1M'];
 
       try {
-        const res = await fetch(`/api/portfolio-history?symbols=${symbols}&range=${range}&interval=${interval}`);
-        const data = await res.json();
-        const sparks = data.spark?.result || [];
+        let sparks: any[] = [];
+        if (symbols.length > 0) {
+            const res = await fetch(`/api/portfolio-history?symbols=${symbols}&range=${range}&interval=${interval}`);
+            const data = await res.json();
+            sparks = data.spark?.result || [];
+        }
 
         // 1. Gather all unique timestamps to align irregular time-series
         const allTimestamps = new Set<number>();
@@ -74,7 +77,6 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
         const seriesData = sparks.map((s: any) => {
            const sym = s.symbol;
            const h = holdingsWithPrices.find(x => x.ticker.toUpperCase() === sym.replace('-USD', ''));
-           const shares = h ? h.shares : 0;
            
            const timestamps = s.response[0]?.timestamp || [];
            const closes = s.response[0]?.indicators?.quote[0]?.close || [];
@@ -84,7 +86,6 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
               if (closes[i] !== null) priceMap.set(ts, closes[i]);
            });
            
-           // Initialize with previous close to prevent artificial 0-value drops during pre-market
            let firstPrice = 0;
            if (s.response[0]?.meta?.previousClose) {
                firstPrice = s.response[0].meta.previousClose;
@@ -93,18 +94,52 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
                if (firstValid) firstPrice = firstValid;
            }
            
-           return { sym, shares, priceMap, lastKnownPrice: firstPrice };
+           return { sym, priceMap, lastKnownPrice: firstPrice };
         });
 
-        // 3. Walk through chronological timeline and aggregate portfolio value
+        // Helper to reconstruct ledger balance at a given point in time
+        const getHistoricalState = (ts: number) => {
+          let cash = 0;
+          const sharesMap = new Map<string, number>();
+
+          if (transactions) {
+            transactions.forEach(t => {
+              const tTs = Math.floor(new Date(t.date).getTime() / 1000);
+              // Only apply transactions that happened before or on this timestamp
+              if (tTs <= ts) {
+                if (t.type === 'CASH_ADD') cash += (t.price_per_share || 0);
+                else if (t.type === 'CASH_REMOVE') cash -= (t.price_per_share || 0);
+                else if (t.type === 'BUY' && t.ticker) {
+                  const current = sharesMap.get(t.ticker) || 0;
+                  sharesMap.set(t.ticker, current + (t.shares || 0));
+                }
+                else if (t.type === 'SELL' && t.ticker) {
+                  const current = sharesMap.get(t.ticker) || 0;
+                  sharesMap.set(t.ticker, Math.max(0, current - (t.shares || 0)));
+                }
+              }
+            });
+          } else {
+             // Fallback to static holdings if transactions aren't provided
+             holdingsWithPrices.forEach(h => {
+               if (h.isCash) cash += h.shares;
+               else sharesMap.set(h.ticker, h.shares);
+             });
+          }
+          return { cash, sharesMap };
+        };
+
+        // 3. Walk through chronological timeline and aggregate portfolio value dynamically
         const chartData = sortedTimes.map(ts => {
-           let portfolioValue = 0;
+           const { cash, sharesMap } = getHistoricalState(ts);
+           let portfolioValue = cash * rate;
            
            seriesData.forEach((series: any) => {
               if (series.priceMap.has(ts)) {
                  series.lastKnownPrice = series.priceMap.get(ts)!;
               }
-              portfolioValue += series.lastKnownPrice * series.shares * rate;
+              const historicalShares = sharesMap.get(series.sym.replace('-USD', '')) || 0;
+              portfolioValue += series.lastKnownPrice * historicalShares * rate;
            });
 
            const d = new Date(ts * 1000);
@@ -132,7 +167,7 @@ export default function PortfolioCharts({ holdingsWithPrices }: { holdingsWithPr
     }
 
     fetchHistory();
-  }, [timeRange, holdingsWithPrices, rate, totalValue]);
+  }, [timeRange, holdingsWithPrices, transactions, rate, totalValue]);
 
   const ranges = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
   

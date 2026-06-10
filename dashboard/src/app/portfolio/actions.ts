@@ -3,51 +3,99 @@
 import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
-export async function addHolding(ticker: string, shares: number, avgCost: number) {
-  const symbol = ticker.toUpperCase();
+// Replaces `addHolding`. Now inserts a transaction.
+export async function addTransaction(type: string, ticker: string | null, shares: number | null, price: number | null, dateStr: string) {
+  const symbol = ticker ? ticker.toUpperCase() : null;
 
-  // Check if position already exists
-  const { data: existing } = await supabase
-    .from('holdings')
-    .select('*')
-    .eq('ticker', symbol)
-    .eq('account', 'main')
-    .single();
-
-  if (existing) {
-    // Recalculate blended average cost and aggregate shares
-    const oldShares = existing.shares;
-    const oldCost = existing.avg_cost;
-    const newTotalShares = oldShares + shares;
-    const newAvgCost = ((oldShares * oldCost) + (shares * avgCost)) / newTotalShares;
-
-    const { error } = await supabase
-      .from('holdings')
-      .update({ shares: newTotalShares, avg_cost: newAvgCost })
-      .eq('id', existing.id);
-
-    if (error) {
-      console.error("Error updating existing holding", error);
-      return { success: false, error: error.message };
-    }
-  } else {
-    // Insert new position
-    const { error } = await supabase.from('holdings').insert([{
-      ticker: symbol,
-      shares,
-      avg_cost: avgCost,
-      account: 'main',
-      currency: 'USD'
-    }]);
-    
-    if (error) {
-      console.error("Error adding holding", error);
-      return { success: false, error: error.message };
-    }
+  const { error } = await supabase.from('transactions').insert([{
+    type,
+    ticker: symbol,
+    shares,
+    price_per_share: price,
+    date: dateStr,
+    account: 'main',
+    currency: 'USD'
+  }]);
+  
+  if (error) {
+    console.error("Error adding transaction", error);
+    return { success: false, error: error.message };
   }
   
   revalidatePath('/portfolio');
   return { success: true };
+}
+
+// Dynamically calculates current holdings from the transaction ledger
+export async function getHoldings() {
+  const { data: transactions, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('account', 'main')
+    .order('date', { ascending: true });
+
+  if (error || !transactions) {
+    console.error("Error fetching transactions", error);
+    return [];
+  }
+
+  const holdingsMap = new Map<string, { shares: number, totalCost: number }>();
+  let cashBalance = 0;
+
+  for (const t of transactions) {
+    if (t.type === 'CASH_ADD') {
+      cashBalance += t.price_per_share || 0; // we can store amount in price_per_share
+    } else if (t.type === 'CASH_REMOVE') {
+      cashBalance -= t.price_per_share || 0;
+    } else if (t.type === 'BUY' && t.ticker) {
+      const current = holdingsMap.get(t.ticker) || { shares: 0, totalCost: 0 };
+      current.shares += t.shares || 0;
+      current.totalCost += (t.shares || 0) * (t.price_per_share || 0);
+      holdingsMap.set(t.ticker, current);
+      // Buying deducts cash if we assume cash was used, but the user explicitly said:
+      // "I think it should be more like 'owned cash'... I just need to be able to 'add' cash... PNL will not change"
+      // We will just track cash as a separate asset.
+    } else if (t.type === 'SELL' && t.ticker) {
+      const current = holdingsMap.get(t.ticker);
+      if (current) {
+        // Average cost basis reduction
+        const avgCost = current.totalCost / current.shares;
+        current.shares -= t.shares || 0;
+        current.totalCost -= (t.shares || 0) * avgCost;
+        if (current.shares <= 0) {
+          holdingsMap.delete(t.ticker);
+        } else {
+          holdingsMap.set(t.ticker, current);
+        }
+      }
+    }
+  }
+
+  const result = [];
+  
+  // Add cash as a pseudo-holding
+  if (cashBalance > 0) {
+    result.push({
+      id: 'cash',
+      ticker: 'USD',
+      shares: cashBalance,
+      avg_cost: 1, // Cash is always worth 1
+      isCash: true
+    });
+  }
+
+  // Add stocks
+  for (const [ticker, data] of Array.from(holdingsMap.entries())) {
+    result.push({
+      id: ticker, // Temporary ID for React loop
+      ticker,
+      shares: data.shares,
+      avg_cost: data.totalCost / data.shares,
+      isCash: false
+    });
+  }
+
+  return result;
 }
 
 export async function searchTickers(query: string) {
@@ -68,7 +116,6 @@ export async function getHistoricalPrice(ticker: string, dateStr: string) {
     const startTs = Math.floor(date.getTime() / 1000);
     const endTs = startTs + 86400 * 5; // Look up to 5 days ahead in case it's a weekend/holiday
     
-    // Convert popular crypto tickers to Yahoo Finance format
     let querySym = ticker.toUpperCase();
     if (['BTC', 'ETH', 'SOL', 'DOGE'].includes(querySym)) {
       querySym = `${querySym}-USD`;
@@ -79,7 +126,6 @@ export async function getHistoricalPrice(ticker: string, dateStr: string) {
     
     const closePrices = data.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
     if (closePrices && closePrices.length > 0) {
-      // Find the first valid price (in case of holidays/weekends, we expanded the range)
       const price = closePrices.find((p: number | null) => p !== null);
       if (price) return price;
     }
@@ -89,28 +135,14 @@ export async function getHistoricalPrice(ticker: string, dateStr: string) {
   return null;
 }
 
-export async function updateHolding(id: number, shares: number, avgCost: number) {
+export async function deleteTransaction(id: number) {
   const { error } = await supabase
-    .from('holdings')
-    .update({ shares, avg_cost: avgCost })
-    .eq('id', id);
-
-  if (error) {
-    console.error("Error updating holding", error);
-    return { success: false, error: error.message };
-  }
-  revalidatePath('/portfolio');
-  return { success: true };
-}
-
-export async function deleteHolding(id: number) {
-  const { error } = await supabase
-    .from('holdings')
+    .from('transactions')
     .delete()
     .eq('id', id);
 
   if (error) {
-    console.error("Error deleting holding", error);
+    console.error("Error deleting transaction", error);
     return { success: false, error: error.message };
   }
   revalidatePath('/portfolio');

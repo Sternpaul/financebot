@@ -56,6 +56,7 @@ Currently, the Portfolio tab only tracks static current holdings.
 
 **Phase 7: Execution & Automation Hooks (Optional but Powerful)**
 - **Automated Trading**: Allow technical alerts to trigger outbound webhooks (e.g., automatically firing a limit buy order via Binance or Hyperliquid when an asset drops 5% in volume).
+- **AI-Driven Execution**: Make the entire platform "AI Ready". The end-goal is to allow the user to simply send a natural language message to the bot (e.g., *"I bought 1 TSLA yesterday at 5PM"*), and the AI will parse the entity, execution time, and automatically inject the transaction into your portfolio ledger.
 
 ---
 

@@ -5,15 +5,17 @@ from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 
-class Holding(Base):
-    __tablename__ = 'holdings'
+class Transaction(Base):
+    __tablename__ = 'transactions'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    ticker = Column(String, nullable=False)
-    shares = Column(Float, nullable=False)
-    avg_cost = Column(Float, nullable=False)
+    type = Column(String, nullable=False) # 'BUY', 'SELL', 'CASH_ADD', 'CASH_REMOVE'
+    ticker = Column(String) # Nullable for cash transfers
+    shares = Column(Float)
+    price_per_share = Column(Float)
     currency = Column(String, default='USD')
     account = Column(String, default='main')
+    date = Column(DateTime(timezone=True), nullable=False)
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Watchlist(Base):

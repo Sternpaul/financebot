@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getHoldings } from '@/app/portfolio/actions';
 import PortfolioCharts from '@/components/PortfolioCharts';
 import PortfolioManager from '@/components/PortfolioManager';
 import HoldingsList from '@/components/HoldingsList';
@@ -7,9 +8,7 @@ import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 
 export default async function Portfolio() {
-  const { data: holdings, error } = await supabase
-    .from('holdings')
-    .select('*');
+  const holdings = await getHoldings();
 
   // Handle Global Currency Context
   const cookieStore = await cookies();
@@ -22,19 +21,32 @@ export default async function Portfolio() {
   let holdingsWithPrices = [];
   
   if (holdings && holdings.length > 0) {
-    const symbols = holdings.map(h => {
+    const symbols = holdings.filter((h: any) => !h.isCash).map((h: any) => {
         const t = h.ticker.toUpperCase();
         if (['BTC', 'ETH', 'SOL', 'DOGE'].includes(t)) return `${t}-USD`;
         return t;
     }).join(',');
 
     try {
-      // Fetch Sparklines and Quotes combined (v7 quote is 401 Unauthorized for some IPs)
-      const sparkRes = await fetch(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=15m`, { next: { revalidate: 60 } });
-      const sparkData = await sparkRes.json();
-      const sparks = sparkData.spark?.result || [];
+      let sparks = [];
+      if (symbols.length > 0) {
+        // Fetch Sparklines and Quotes combined (v7 quote is 401 Unauthorized for some IPs)
+        const sparkRes = await fetch(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=15m`, { next: { revalidate: 60 } });
+        const sparkData = await sparkRes.json();
+        sparks = sparkData.spark?.result || [];
+      }
       
-      holdingsWithPrices = holdings.map(h => {
+      holdingsWithPrices = holdings.map((h: any) => {
+        if (h.isCash) {
+          return {
+            ...h,
+            currentPrice: 1.0, // Cash is always $1
+            pctChange: 0,
+            longName: "Cash Balance",
+            sparkline: []
+          };
+        }
+
         const t = h.ticker.toUpperCase();
         const querySym = ['BTC', 'ETH', 'SOL', 'DOGE'].includes(t) ? `${t}-USD` : t;
         const s = sparks.find((x: any) => x.symbol === querySym);
@@ -76,20 +88,24 @@ export default async function Portfolio() {
     }
   }
 
+  const { data: transactions, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('account', 'main')
+    .order('date', { ascending: true });
+
   return (
     <main className="page-container animate-fade-in">
       <h1 className="header-title">My <span className="text-gradient">Portfolio</span></h1>
       
-      {error && <p>Error loading portfolio: {error.message}</p>}
-      
-      {(!holdings || holdings.length === 0) && !error ? (
+      {!holdings || holdings.length === 0 ? (
         <div className="glass-panel">
-          <p style={{ color: 'var(--text-secondary)' }}>Your portfolio is currently empty in the database. Run the seed script to test!</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Your portfolio ledger is currently empty. Start logging transactions!</p>
           <PortfolioManager />
         </div>
       ) : (
         <>
-          <PortfolioCharts holdingsWithPrices={holdingsWithPrices} />
+          <PortfolioCharts holdingsWithPrices={holdingsWithPrices} transactions={transactions || []} />
           <PortfolioManager />
           <HoldingsList holdings={holdingsWithPrices} />
         </>
