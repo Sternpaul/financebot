@@ -6,14 +6,18 @@ from telethon import TelegramClient
 from sqlalchemy import select
 
 from bot.db.database import AsyncSessionLocal
-from bot.db.models import ContentSource, NewsArticle
-from bot.services.news import extract_tickers_aggressively, get_active_tickers
+from bot.db.models import ContentSource, NewsArticle, Watchlist
+from bot.services.news import extract_tickers_aggressively
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 API_ID = os.getenv("TELEGRAM_API_ID")
 API_HASH = os.getenv("TELEGRAM_API_HASH")
+
+async def get_active_tickers(session):
+    result = await session.execute(select(Watchlist.ticker))
+    return [r for r in result.scalars().all()]
 
 async def backfill():
     client = TelegramClient(
@@ -31,7 +35,7 @@ async def backfill():
         result = await session.execute(select(ContentSource).where(ContentSource.platform == 'telegram', ContentSource.is_active == True))
         sources = result.scalars().all()
         
-        active_tickers = await get_active_tickers()
+        active_tickers = await get_active_tickers(session)
         
         for source in sources:
             logger.info(f"Backfilling {source.handle}...")
