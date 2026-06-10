@@ -20,109 +20,112 @@ async def run_brain_synthesis():
     """
     logger.info("Starting Brain Synthesis cycle...")
     
-    async with AsyncSessionLocal() as session:
-        # Find unprocessed news articles from the last 1 hour
-        cutoff_news = datetime.now(timezone.utc) - timedelta(hours=1)
-        result = await session.execute(
-            select(NewsArticle).where(NewsArticle.posted_at >= cutoff_news)
-        )
-        recent_news = result.scalars().all()
-        
-        if not recent_news:
-            logger.info("No new articles to synthesize.")
-            await log_ingestion('ai_brain', 'synthesis', 'NO_NEW_DATA', 'No new articles to synthesize in the last hour.')
-            return
+    try:
+        async with AsyncSessionLocal() as session:
+            # Find unprocessed news articles from the last 1 hour
+            cutoff_news = datetime.now(timezone.utc) - timedelta(hours=1)
+            result = await session.execute(
+                select(NewsArticle).where(NewsArticle.posted_at >= cutoff_news)
+            )
+            recent_news = result.scalars().all()
+            
+            if not recent_news:
+                logger.info("No new articles to synthesize.")
+                await log_ingestion('ai_brain', 'synthesis', 'NO_NEW_DATA', 'No new articles to synthesize in the last hour.')
+                return
 
-        # Group by mentioned tickers
-        ticker_news = {}
-        macro_news = []
+            # Group by mentioned tickers
+            ticker_news = {}
+            macro_news = []
 
-        for article in recent_news:
-            if article.tickers_mentioned:
-                for ticker in article.tickers_mentioned:
-                    if ticker not in ticker_news:
-                        ticker_news[ticker] = []
-                    ticker_news[ticker].append(article)
+            for article in recent_news:
+                if article.tickers_mentioned:
+                    for ticker in article.tickers_mentioned:
+                        if ticker not in ticker_news:
+                            ticker_news[ticker] = []
+                        ticker_news[ticker].append(article)
+                else:
+                    macro_news.append(article)
+
+            synthesized_count = 0
+            total_tokens_used = 0
+            
+            # Helper to format bundled text with Telegram priority
+            def bundle_articles(articles):
+                telegram = [a for a in articles if a.source_platform == 'telegram']
+                news = [a for a in articles if a.source_platform != 'telegram']
+                
+                bundled = ""
+                if telegram:
+                    bundled += "[HIGH PRIORITY TELEGRAM ALERTS]\n"
+                    bundled += "\n\n".join([f"[{a.source_handle}]: {a.content}" for a in telegram]) + "\n\n"
+                if news:
+                    bundled += "[SECONDARY NEWS CONTEXT]\n"
+                    bundled += "\n\n".join([f"[{a.source_platform}]: {a.title}\n{a.content}" for a in news])
+                    
+                return bundled
+
+            # Synthesize Ticker-Specific Knowledge
+            for ticker, articles in ticker_news.items():
+                if len(articles) == 0:
+                    continue
+                    
+                combined_text = bundle_articles(articles)
+                prompt_instruction = f"Extract key insights, sentiment shifts, risks, and catalysts for ticker ${ticker} from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
+                
+                # Compress with ScaleDown
+                compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
+                
+                response = await generate_completion(compressed_prompt, "You are a sharp financial analyst AI. Extract concise factual knowledge.")
+                
+                if response and response.get('content'):
+                    knowledge = MarketKnowledge(
+                        ticker=ticker,
+                        knowledge_type='catalyst_sentiment',
+                        content=response['content'],
+                        source_article_ids=[a.id for a in articles]
+                    )
+                    session.add(knowledge)
+                    await session.commit()
+                    logger.info(f"Synthesized knowledge for {ticker}")
+                    synthesized_count += 1
+                    total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
+                    
+            # Synthesize Macro Knowledge
+            if macro_news:
+                combined_text = bundle_articles(macro_news[:50]) # Limit to 50
+                prompt_instruction = f"Extract key macroeconomic insights and market-wide catalysts from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
+                compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
+                
+                response = await generate_completion(compressed_prompt, "You are a sharp macro-economic analyst AI. Extract concise factual knowledge.")
+                
+                if response and response.get('content'):
+                    knowledge = MarketKnowledge(
+                        ticker=None,
+                        knowledge_type='macro',
+                        content=response['content'],
+                        source_article_ids=[a.id for a in macro_news[:50]]
+                    )
+                    session.add(knowledge)
+                    await session.commit()
+                    logger.info("Synthesized macro knowledge")
+                    synthesized_count += 1
+                    total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
+
+            # Brain Size Tracking
+            res = await session.execute(select(func.sum(func.length(MarketKnowledge.content))).where(MarketKnowledge.is_archived == False))
+            total_chars = res.scalar() or 0
+            est_tokens = total_chars // 4
+
+            if synthesized_count > 0:
+                msg = f"Synthesized {synthesized_count} items from {len(recent_news)} articles. Used {total_tokens_used} tokens. Active Brain Size: {est_tokens} tokens."
+                await log_ingestion('ai_brain', 'synthesis', 'SUCCESS', msg)
             else:
-                macro_news.append(article)
+                await log_ingestion('ai_brain', 'synthesis', 'ERROR', f'Failed to synthesize any knowledge. Active Brain Size: {est_tokens} tokens.')
 
-        synthesized_count = 0
-        total_tokens_used = 0
-        
-        # Helper to format bundled text with Telegram priority
-        def bundle_articles(articles):
-            telegram = [a for a in articles if a.source_platform == 'telegram']
-            news = [a for a in articles if a.source_platform != 'telegram']
-            
-            bundled = ""
-            if telegram:
-                bundled += "[HIGH PRIORITY TELEGRAM ALERTS]\n"
-                bundled += "\n\n".join([f"[{a.source_handle}]: {a.content}" for a in telegram]) + "\n\n"
-            if news:
-                bundled += "[SECONDARY NEWS CONTEXT]\n"
-                bundled += "\n\n".join([f"[{a.source_platform}]: {a.title}\n{a.content}" for a in news])
-                
-            return bundled
-
-        # Synthesize Ticker-Specific Knowledge
-        for ticker, articles in ticker_news.items():
-            if len(articles) == 0:
-                continue
-                
-            combined_text = bundle_articles(articles)
-            prompt_instruction = f"Extract key insights, sentiment shifts, risks, and catalysts for ticker ${ticker} from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
-            
-            # Compress with ScaleDown
-            compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
-            
-            response = await generate_completion(compressed_prompt, "You are a sharp financial analyst AI. Extract concise factual knowledge.")
-            
-            if response and response.get('content'):
-                knowledge = MarketKnowledge(
-                    ticker=ticker,
-                    knowledge_type='catalyst_sentiment',
-                    content=response['content'],
-                    source_article_ids=[a.id for a in articles]
-                )
-                session.add(knowledge)
-                await session.commit()
-                logger.info(f"Synthesized knowledge for {ticker}")
-                synthesized_count += 1
-                total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
-                
-        # Synthesize Macro Knowledge
-        if macro_news:
-            combined_text = bundle_articles(macro_news[:50]) # Limit to 50
-            prompt_instruction = f"Extract key macroeconomic insights and market-wide catalysts from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
-            compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
-            
-            response = await generate_completion(compressed_prompt, "You are a sharp macro-economic analyst AI. Extract concise factual knowledge.")
-            
-            if response and response.get('content'):
-                knowledge = MarketKnowledge(
-                    ticker=None,
-                    knowledge_type='macro',
-                    content=response['content'],
-                    source_article_ids=[a.id for a in macro_news[:50]]
-                )
-                session.add(knowledge)
-                await session.commit()
-                logger.info("Synthesized macro knowledge")
-                synthesized_count += 1
-                total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
-
-        # Brain Size Tracking
-        res = await session.execute(select(func.sum(func.length(MarketKnowledge.content))).where(MarketKnowledge.is_archived == False))
-        total_chars = res.scalar() or 0
-        est_tokens = total_chars // 4
-
-        if synthesized_count > 0:
-            msg = f"Synthesized {synthesized_count} items from {len(recent_news)} articles. Used {total_tokens_used} tokens. Active Brain Size: {est_tokens} tokens."
-            await log_ingestion('ai_brain', 'synthesis', 'SUCCESS', msg)
-        else:
-            await log_ingestion('ai_brain', 'synthesis', 'ERROR', f'Failed to synthesize any knowledge. Active Brain Size: {est_tokens} tokens.')
-
-    logger.info("Brain Synthesis cycle completed.")
+        logger.info("Brain Synthesis cycle completed.")
+    except Exception as e:
+        logger.error(f"Brain synthesis failed with exception: {e}", exc_info=True)
 
 async def run_daily_compaction():
     """

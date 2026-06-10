@@ -9,19 +9,16 @@ export default function IngestionLogs() {
 
   useEffect(() => {
     const fetchLogs = async () => {
-      const data = await fetchIngestionLogs(100);
+      const data = await fetchIngestionLogs(100, activeTab);
       setLogs(data);
     };
 
     fetchLogs();
     const interval = setInterval(fetchLogs, 5000); // Poll every 5 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
-  const filteredLogs = logs.filter(log => {
-    if (activeTab === 'ai') return log.source_platform === 'ai_brain';
-    return log.source_platform !== 'ai_brain';
-  });
+  const filteredLogs = logs;
 
   return (
     <div style={{ marginTop: '40px', padding: '20px', borderTop: '2px solid #333' }}>

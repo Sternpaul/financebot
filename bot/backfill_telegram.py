@@ -16,14 +16,14 @@ API_ID = os.getenv("TELEGRAM_API_ID")
 API_HASH = os.getenv("TELEGRAM_API_HASH")
 
 from redis.asyncio import Redis
-
-from bot.telegram_client import client
+from bot.telegram_client import get_telegram_client
 
 async def get_active_tickers(session):
     result = await session.execute(select(Watchlist.ticker))
     return [r for r in result.scalars().all()]
 
 async def backfill(handles_to_backfill: list[str] = None):
+    client = get_telegram_client()
     if not client:
         logger.error("Telegram client is not initialized.")
         return
