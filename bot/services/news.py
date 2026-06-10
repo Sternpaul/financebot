@@ -110,6 +110,7 @@ async def ingest_custom_sources():
             if source.platform == 'substack':
                 url = f"https://{clean_handle}.substack.com/feed"
                 try:
+                    logger.info(f"Fetching Substack feed: {url}")
                     async with http_session.get(url, timeout=30) as resp:
                         if resp.status == 200:
                             xml_data = await resp.text()
@@ -218,6 +219,7 @@ async def ingest_watchlist_news():
             handle = item["handle"]
             base_ticker = item["base_ticker"]
             try:
+                logger.info(f"Fetching Yahoo feed: {url}")
                 async with http_session.get(url, headers=headers, timeout=10) as resp:
                     if resp.status == 200:
                         xml_data = await resp.text()
@@ -285,7 +287,13 @@ async def ingest_watchlist_news():
 
 async def run_news_ingestion():
     logger.info("Starting news ingestion cycle...")
-    await cleanup_old_articles()
-    await ingest_custom_sources()
-    await ingest_watchlist_news()
-    logger.info("News ingestion cycle completed.")
+    try:
+        logger.info("Running cleanup_old_articles...")
+        await cleanup_old_articles()
+        logger.info("Running ingest_custom_sources...")
+        await ingest_custom_sources()
+        logger.info("Running ingest_watchlist_news...")
+        await ingest_watchlist_news()
+        logger.info("News ingestion cycle completed.")
+    except Exception as e:
+        logger.error(f"News ingestion cycle failed with error: {type(e).__name__} {e}")
