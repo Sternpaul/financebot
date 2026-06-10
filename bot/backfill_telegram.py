@@ -34,11 +34,11 @@ async def backfill():
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(ContentSource).where(ContentSource.platform == 'telegram', ContentSource.is_active == True))
         sources = result.scalars().all()
+        source_handles = [s.handle for s in sources]
         
         active_tickers = await get_active_tickers(session)
         
-        for source in sources:
-            source_handle = source.handle
+        for source_handle in source_handles:
             logger.info(f"Backfilling {source_handle}...")
             try:
                 # get entity
