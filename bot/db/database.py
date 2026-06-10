@@ -12,16 +12,17 @@ import uuid
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# Supabase pooler on 6543 is transaction mode (breaks asyncpg prepared statements).
+# We force it to 5432 (session mode / direct) which fully supports asyncpg.
+if ":6543/" in db_url:
+    db_url = db_url.replace(":6543/", ":5432/")
+
 # Create the async engine
 engine = create_async_engine(
     db_url,
     echo=False,  # Set to True for SQL query debugging
     pool_size=10,
     max_overflow=20,
-    connect_args={
-        "statement_cache_size": 0,
-        "prepared_statement_cache_size": 0,
-    },
 )
 
 # Create an async session factory
