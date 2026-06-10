@@ -24,9 +24,9 @@ def sanitize_handle(handle: str, platform: str) -> str:
     return handle
 
 async def cleanup_old_articles():
-    """Deletes articles older than 30 days to save DB space."""
+    """Deletes articles older than 365 days to save DB space."""
     async with get_session() as session:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=365)
         stmt = delete(NewsArticle).where(NewsArticle.posted_at < cutoff)
         result = await session.execute(stmt)
         await session.commit()
