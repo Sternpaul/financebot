@@ -85,13 +85,14 @@ async def backfill(handles_to_backfill: list[str] = None):
                     except Exception:
                         await session.rollback()
                 
-                logger.info(f"Inserted {count} new messages for {source_handle}")
-                from bot.services.news import log_ingestion
-                await log_ingestion('telegram_backfill', source_handle, 'SUCCESS', f"Inserted {count} historical messages.")
+                if count > 0:
+                    logger.info(f"Inserted {count} new messages for {source_handle}")
+                    from bot.services.news import log_ingestion
+                    await log_ingestion('telegram', source_handle, 'SUCCESS', f"Inserted {count} new messages.")
             except Exception as e:
-                logger.error(f"Failed to backfill {source_handle}: {e}")
+                logger.error(f"Failed to poll {source_handle}: {e}")
                 from bot.services.news import log_ingestion
-                await log_ingestion('telegram_backfill', source_handle, 'ERROR', str(e))
+                await log_ingestion('telegram', source_handle, 'ERROR', str(e))
         # Do not disconnect client as it's shared with streaming
 
 async def run_telegram_backfill_check(redis: Redis = None):
@@ -101,22 +102,11 @@ async def run_telegram_backfill_check(redis: Redis = None):
         active_sources = result.scalars().all()
         active_handles = [s.handle for s in active_sources]
     
-    handles_to_backfill = []
-    if redis:
-        for handle in active_handles:
-            is_cached = await redis.get(f"backfill:telegram:{handle}")
-            if not is_cached:
-                handles_to_backfill.append(handle)
-    else:
-        # Without redis cache, don't run automatically to avoid spamming
-        pass
+    handles_to_poll = active_handles
 
-    if handles_to_backfill:
-        logger.info(f"Found new/reactivated Telegram channels to backfill: {handles_to_backfill}")
-        await backfill(handles_to_backfill)
-        if redis:
-            for handle in handles_to_backfill:
-                await redis.set(f"backfill:telegram:{handle}", "1")
+    if handles_to_poll:
+        logger.info(f"Polling latest messages for {len(handles_to_poll)} Telegram channels...")
+        await backfill(handles_to_poll)
 
 if __name__ == "__main__":
     asyncio.run(backfill())
