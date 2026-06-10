@@ -14,9 +14,9 @@ interface ContentSource {
 }
 
 const REGION_MAPPING: Record<string, { region: string, name: string }> = {
-  '^GSPC': { region: 'US', name: 'S&P 500' },
-  '^IXIC': { region: 'US', name: 'NASDAQ' },
-  '^DJI': { region: 'US', name: 'Dow Jones' },
+  'SPY': { region: 'US', name: 'S&P 500' },
+  'QQQ': { region: 'US', name: 'NASDAQ' },
+  'DIA': { region: 'US', name: 'Dow Jones' },
   '^GDAXI': { region: 'EU', name: 'DAX' },
   '^STOXX50E': { region: 'EU', name: 'Euro Stoxx 50' },
   '^FTSE': { region: 'EU', name: 'FTSE 100' },

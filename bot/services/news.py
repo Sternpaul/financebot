@@ -69,7 +69,7 @@ async def ingest_rsshub_sources():
             if source.platform == 'telegram':
                 url = f"{config.rsshub_url}/telegram/channel/{clean_handle}"
             elif source.platform == 'substack':
-                url = f"{config.rsshub_url}/substack/newsletters/{clean_handle}"
+                url = f"https://{clean_handle}.substack.com/feed"
             else:
                 continue
                 
