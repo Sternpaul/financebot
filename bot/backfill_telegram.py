@@ -70,10 +70,13 @@ async def backfill():
                         posted_at=message.date,
                         tickers_mentioned=found_tickers if found_tickers else None
                     )
-                    session.add(article)
-                    count += 1
+                    try:
+                        session.add(article)
+                        await session.commit()
+                        count += 1
+                    except Exception:
+                        await session.rollback()
                 
-                await session.commit()
                 logger.info(f"Inserted {count} new messages for {source.handle}")
             except Exception as e:
                 logger.error(f"Failed to backfill {source.handle}: {e}")
