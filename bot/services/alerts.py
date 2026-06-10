@@ -82,14 +82,29 @@ async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
             
         if provider == "yahoo":
             try:
-                url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={','.join(symbols)}"
-                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                async with session.get(url, headers=headers, timeout=10) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        return data.get("quoteResponse", {}).get("result", [])
-                    else:
-                        logger.error(f"Yahoo API error: {resp.status}")
+                def _fetch_yf():
+                    import yfinance as yf
+                    res = []
+                    for s in symbols:
+                        try:
+                            info = yf.Ticker(s).fast_info
+                            last_price = info.last_price
+                            prev_close = info.previous_close
+                            change_pct = ((last_price - prev_close) / prev_close * 100) if prev_close else 0
+                            res.append({
+                                "symbol": s,
+                                "regularMarketPrice": last_price,
+                                "regularMarketChangePercent": change_pct,
+                                "regularMarketVolume": info.last_volume,
+                                "averageDailyVolume10Day": info.ten_day_average_volume or 1
+                            })
+                        except Exception as e:
+                            logger.error(f"yfinance error for {s}: {e}")
+                    return res
+
+                # Run blocking yfinance in thread
+                data = await asyncio.to_thread(_fetch_yf)
+                return data
             except Exception as e:
                 logger.error(f"Failed to fetch quotes from Yahoo: {e}")
                 

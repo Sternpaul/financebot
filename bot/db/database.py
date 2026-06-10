@@ -19,7 +19,8 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=20,
     connect_args={
-        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__"
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
     },
 )
 
