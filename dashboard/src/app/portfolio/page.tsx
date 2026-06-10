@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { getHoldings } from '@/app/portfolio/actions';
+import { getHoldings, getExchangeRate } from '@/app/portfolio/actions';
 import PortfolioCharts from '@/components/PortfolioCharts';
 import PortfolioManager from '@/components/PortfolioManager';
 import HoldingsList from '@/components/HoldingsList';
@@ -15,7 +15,19 @@ export default async function Portfolio() {
   const currencyCookie = cookieStore.get('app-currency')?.value || 'USD';
   const isEur = currencyCookie === 'EUR';
   const symbol = isEur ? '€' : '$';
-  const rate = isEur ? 0.92 : 1.0;
+  
+  // Fetch real exchange rate for USD to EUR conversion.
+  // EURUSD=X gives how many USD per 1 EUR (e.g. 1.08).
+  // So to convert a USD portfolio value to EUR, we multiply by (1 / 1.08).
+  let rate = 1.0;
+  if (isEur) {
+    const eurusd = await getExchangeRate('EURUSD=X');
+    if (eurusd) {
+       rate = 1.0 / eurusd;
+    } else {
+       rate = 0.92; // Fallback
+    }
+  }
 
   // Fetch prices from Yahoo Finance
   let holdingsWithPrices = [];
@@ -55,6 +67,8 @@ export default async function Portfolio() {
         let price = h.avg_cost;
         let pctChange = 0;
         let longName = h.ticker;
+        let marketState = 'UNKNOWN';
+        let regularMarketStart = 0;
 
         if (s && s.response && s.response[0]) {
             const meta = s.response[0].meta;
@@ -65,6 +79,17 @@ export default async function Portfolio() {
                     pctChange = ((price - prevClose) / prevClose) * 100;
                 }
                 longName = meta.shortName || meta.longName || h.ticker;
+                
+                if (meta.currentTradingPeriod) {
+                  const now = Math.floor(Date.now() / 1000);
+                  const p = meta.currentTradingPeriod;
+                  if (p.regular && now >= p.regular.start && now < p.regular.end) marketState = 'OPEN';
+                  else if (p.pre && now >= p.pre.start && now < p.pre.end) marketState = 'PRE';
+                  else if (p.post && now >= p.post.start && now < p.post.end) marketState = 'POST';
+                  else marketState = 'CLOSED';
+                  
+                  regularMarketStart = p.regular?.start || 0;
+                }
             }
             if (s.response[0].indicators && s.response[0].indicators.quote) {
                 const closePrices = s.response[0].indicators.quote[0].close;
@@ -79,12 +104,14 @@ export default async function Portfolio() {
           currentPrice: price,
           pctChange: pctChange,
           longName,
-          sparkline
+          sparkline,
+          marketState,
+          regularMarketStart
         };
       });
     } catch (err) {
       console.error("Failed to fetch Yahoo Finance quotes", err);
-      holdingsWithPrices = holdings.map(h => ({ ...h, currentPrice: h.avg_cost, pctChange: 0, longName: h.ticker, sparkline: [] }));
+      holdingsWithPrices = holdings.map((h: any) => ({ ...h, currentPrice: h.avg_cost, pctChange: 0, longName: h.ticker, sparkline: [], marketState: 'UNKNOWN', regularMarketStart: 0 }));
     }
   }
 
@@ -105,9 +132,9 @@ export default async function Portfolio() {
         </div>
       ) : (
         <>
-          <PortfolioCharts holdingsWithPrices={holdingsWithPrices} transactions={transactions || []} />
+          <PortfolioCharts holdingsWithPrices={holdingsWithPrices} transactions={transactions || []} exchangeRate={rate} />
           <PortfolioManager />
-          <HoldingsList holdings={holdingsWithPrices} />
+          <HoldingsList holdings={holdingsWithPrices} exchangeRate={rate} />
         </>
       )}
     </main>

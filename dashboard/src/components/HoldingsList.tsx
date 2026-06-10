@@ -6,11 +6,11 @@ import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from "re
 import { useAppContext } from "./AppContext";
 import { removeFromWatchlist } from "@/app/watchlist/actions";
 
-export default function HoldingsList({ holdings, mode = "portfolio" }: { holdings: any[], mode?: "portfolio" | "watchlist" }) {
+export default function HoldingsList({ holdings, mode = "portfolio", exchangeRate = 1.0 }: { holdings: any[], mode?: "portfolio" | "watchlist", exchangeRate?: number }) {
   const { currency } = useAppContext();
-  const isEur = currency === "EUR";
-  const symbol = isEur ? "€" : "$";
-  const rate = isEur ? 0.92 : 1.0;
+  const isEur = currency === 'EUR';
+  const symbol = isEur ? '€' : '$';
+  const rate = isEur ? exchangeRate : 1.0;
 
   const [isPending, startTransition] = useTransition();
 
@@ -58,9 +58,23 @@ export default function HoldingsList({ holdings, mode = "portfolio" }: { holding
               {h.isCash ? (
                  <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--foreground)" }}>{h.ticker}</span>
               ) : (
-                <Link href={`/watchlist/${encodeURIComponent(h.ticker)}`} style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--foreground)", textDecoration: "none" }}>
-                  {h.ticker}
-                </Link>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                  <Link href={`/watchlist/${encodeURIComponent(h.ticker)}`} style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--foreground)", textDecoration: "none" }}>
+                    {h.ticker}
+                  </Link>
+                  {h.marketState && (
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <span style={{ 
+                        fontSize: "0.5rem",
+                        color: h.marketState === 'OPEN' ? 'var(--success)' : 
+                               ['PRE', 'POST'].includes(h.marketState) ? '#FFBB28' : 'var(--danger)' 
+                      }}>●</span>
+                      {h.marketState === 'OPEN' ? 'Open' : 
+                       h.marketState === 'PRE' ? 'Pre-Market' : 
+                       h.marketState === 'POST' ? 'Post-Market' : 'Closed'}
+                    </span>
+                  )}
+                </div>
               )}
               <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {h.longName || (h.isCash ? "Cash Balance" : "")}

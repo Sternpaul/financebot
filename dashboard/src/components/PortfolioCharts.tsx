@@ -4,11 +4,11 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { useAppContext } from './AppContext';
 import { useMemo, useState, useEffect } from 'react';
 
-export default function PortfolioCharts({ holdingsWithPrices, transactions }: { holdingsWithPrices: any[], transactions?: any[] }) {
+export default function PortfolioCharts({ holdingsWithPrices, transactions, exchangeRate = 1.0 }: { holdingsWithPrices: any[], transactions?: any[], exchangeRate?: number }) {
   const { currency } = useAppContext();
   const isEur = currency === 'EUR';
   const symbol = isEur ? '€' : '$';
-  const rate = isEur ? 0.92 : 1.0;
+  const rate = isEur ? exchangeRate : 1.0;
 
   const totalValue = holdingsWithPrices.reduce((sum, h) => sum + (h.shares * h.currentPrice), 0);
   const totalCost = holdingsWithPrices.reduce((sum, h) => sum + (h.shares * h.avg_cost), 0);
@@ -71,7 +71,51 @@ export default function PortfolioCharts({ holdingsWithPrices, transactions }: { 
            const timestamps = s.response[0]?.timestamp || [];
            timestamps.forEach((ts: number) => allTimestamps.add(ts));
         });
-        const sortedTimes = Array.from(allTimestamps).sort((a, b) => a - b);
+        let sortedTimes = Array.from(allTimestamps).sort((a, b) => a - b);
+
+        // Midnight Reset Logic for 1D chart
+        if (timeRange === '1D') {
+            const now = new Date();
+            let isTradingDay = false;
+            let hasTodayData = false;
+
+            holdingsWithPrices.forEach(h => {
+               if (h.regularMarketStart) {
+                   const startDay = new Date(h.regularMarketStart * 1000);
+                   if (startDay.getDate() === now.getDate() && startDay.getMonth() === now.getMonth() && startDay.getFullYear() === now.getFullYear()) {
+                       isTradingDay = true;
+                   }
+               }
+            });
+
+            sortedTimes.forEach(ts => {
+               const tsDate = new Date(ts * 1000);
+               if (tsDate.getDate() === now.getDate() && tsDate.getMonth() === now.getMonth() && tsDate.getFullYear() === now.getFullYear()) {
+                   hasTodayData = true;
+               }
+            });
+
+            if (isTradingDay) {
+                if (!hasTodayData) {
+                    const midnight = new Date(now);
+                    midnight.setHours(0, 0, 0, 0);
+                    sortedTimes = [midnight.getTime() / 1000, now.getTime() / 1000];
+                } else {
+                    sortedTimes = sortedTimes.filter(ts => {
+                        const tsDate = new Date(ts * 1000);
+                        return tsDate.getDate() === now.getDate() && tsDate.getMonth() === now.getMonth() && tsDate.getFullYear() === now.getFullYear();
+                    });
+                }
+            } else {
+               if (sortedTimes.length > 0) {
+                   const lastTsDate = new Date(sortedTimes[sortedTimes.length - 1] * 1000);
+                   sortedTimes = sortedTimes.filter(ts => {
+                       const tsDate = new Date(ts * 1000);
+                       return tsDate.getDate() === lastTsDate.getDate() && tsDate.getMonth() === lastTsDate.getMonth() && tsDate.getFullYear() === lastTsDate.getFullYear();
+                   });
+               }
+            }
+        }
 
         // 2. Setup LOCF (Last Observation Carried Forward) state for each symbol
         const seriesData = sparks.map((s: any) => {

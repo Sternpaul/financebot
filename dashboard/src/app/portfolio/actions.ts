@@ -99,14 +99,32 @@ export async function getHoldings() {
 }
 
 export async function searchTickers(query: string) {
+  if (!query) return [];
+  
   try {
-    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=5&newsCount=0`, { next: { revalidate: 3600 } });
-    if (!res.ok) return [];
+    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${query}&quotesCount=6`);
     const data = await res.json();
-    return data.quotes || [];
-  } catch (e) {
-    console.error("Failed to search tickers", e);
+    return data.quotes.map((q: any) => ({
+      symbol: q.symbol,
+      description: q.shortname || q.longname || q.symbol,
+      quoteType: q.quoteType
+    }));
+  } catch (error) {
+    console.error("Yahoo search error", error);
     return [];
+  }
+}
+
+export async function getExchangeRate(pair: string = 'EURUSD=X') {
+  try {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${pair}?interval=1d&range=1d`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const rate = data.chart.result[0].meta.regularMarketPrice;
+    return rate;
+  } catch (err) {
+    console.error("Error fetching exchange rate:", err);
+    return null;
   }
 }
 

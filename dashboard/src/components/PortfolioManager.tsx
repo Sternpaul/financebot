@@ -2,8 +2,13 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { addTransaction, getHistoricalPrice, searchTickers } from "@/app/portfolio/actions";
+import { useAppContext } from "./AppContext";
 
 export default function PortfolioManager() {
+  const { currency } = useAppContext();
+  const isEur = currency === 'EUR';
+  const symbol = isEur ? '€' : '$';
+
   const [type, setType] = useState("BUY"); // 'BUY', 'SELL', 'CASH_ADD', 'CASH_REMOVE'
   const [ticker, setTicker] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,7 +67,9 @@ export default function PortfolioManager() {
       } else {
         // Cash deposit/withdrawal
         if (!avgCost) return; // We use avgCost input as the "Amount"
-        submitPrice = parseFloat(avgCost); 
+        // Convert input EUR to USD baseline if EUR is selected
+        const convertedCost = isEur ? parseFloat(avgCost) / 0.92 : parseFloat(avgCost);
+        submitPrice = convertedCost; 
       }
 
       await addTransaction(type, submitTicker, submitShares, submitPrice, dateBought);
@@ -148,7 +155,7 @@ export default function PortfolioManager() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minWidth: '150px', position: 'relative' }}>
           <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            {isCash ? 'Amount ($)' : `Price per share ($)`} {isFetchingPrice && <span style={{ fontSize: '0.7rem', color: 'var(--accent-primary)' }}>Fetching...</span>}
+            {isCash ? `Amount (${symbol})` : `Price per share (${symbol})`} {isFetchingPrice && <span style={{ fontSize: '0.7rem', color: 'var(--accent-primary)' }}>Fetching...</span>}
           </label>
           <input type="number" step="any" value={avgCost} onChange={e => setAvgCost(e.target.value)} placeholder={isCash ? "5000" : "Auto-filled"} required />
         </div>
