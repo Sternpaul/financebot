@@ -39,20 +39,21 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 - [x] **Alerts Engine**: Complete technical alerts (Price Targets, % Drops) with customizable thresholds per ticker.
 - [x] **Messaging Interface**: Live Discord integration pushing real-time alerts to the user's phone via Discord embeds with interactive [Acknowledge] buttons.
 
+**Phase 6: Advanced Portfolio Analytics & Ledger (✅ Completed)**
+- [x] **Dynamic Ledger Construction**: The portfolio state, P&L, and historical equity curves are now calculated dynamically by replaying your transaction history from the `transactions` table.
+- [x] **Market State Integration**: Real-time Yahoo Finance indicators visually highlight whether the market for a specific asset is currently Open, Closed, Pre-Market, or Post-Market.
+- [x] **Continuous Charting**: Implemented intelligent "reset" logic that retains previous daily charts during closed hours and weekends, ensuring the dashboard never shows an empty state.
+- [x] **Massive Interoperability**: Industry-standard CSV Import and Export capabilities via `papaparse` allow you to easily ingest backups from platforms like Yahoo Finance or export your entire ledger for external tax analysis.
+
 ---
 
 ## 🚧 What Needs Work (Next Steps & Roadmap)
 
 **Phase 5: The AI & RAG Ideation Engine (Highest Priority)**
-Currently, we ingest hundreds of Telegram messages and Substack newsletters daily, but manual reading is required. We will implement **Semantic Search**:
+Currently, we ingest hundreds of Telegram messages and Substack newsletters daily. We have configured the database to retain extended historical text data (500MB+ capacity) for deep analysis. We will implement **Semantic Search**:
 - **Chunking & Embeddings**: Chunk all ingested text and use an LLM API to create vector embeddings stored in our `pgvector` database.
 - **Semantic Research Hub**: Open a new "Research" tab on the dashboard to query your data semantically (e.g., *"What is the general sentiment on tech earnings right now?"*). The AI will scan all your alpha channels and reports instantly to synthesize an answer.
 - **Natural Language Chat**: Add a chat interface where an LLM agent has access to your portfolio, watchlist, and live market data.
-
-**Phase 6: Advanced Portfolio Analytics (Equity Curve Tracking)**
-Currently, the Portfolio tab only tracks static current holdings.
-- **Time-Series Tracking**: Create a daily background job that calculates total portfolio value and stores it in a `portfolio_history` table.
-- **Performance Charting**: Render an interactive line chart showing P&L performance over the last 30/90 days compared to the S&P 500 benchmark.
 
 **Phase 7: Execution & Automation Hooks (Optional but Powerful)**
 - **Automated Trading**: Allow technical alerts to trigger outbound webhooks (e.g., automatically firing a limit buy order via Binance or Hyperliquid when an asset drops 5% in volume).
