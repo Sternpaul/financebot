@@ -21,7 +21,7 @@ async def get_active_tickers(session):
 
 async def backfill():
     client = TelegramClient(
-        'sessions/financebot', 
+        'sessions/bot', 
         int(API_ID) if API_ID else 0, 
         API_HASH
     )
