@@ -73,7 +73,7 @@ docker compose up --build -d
 To achieve true real-time ingestion for Telegram and to read private channels, you must authenticate the bot with your Telegram account.
 Get your `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) and add them to your `.env` file. Then, run the interactive authentication script inside the docker container:
 ```bash
-docker compose run --rm worker python login_telegram.py
+docker compose run --build --rm worker python login_telegram.py
 ```
 *(Enter your phone number and login code. This securely saves a `bot.session` file into the mounted `sessions/` directory, keeping the bot permanently authenticated.)*
 
