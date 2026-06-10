@@ -8,6 +8,7 @@ from sqlalchemy import select, delete
 from bot.db.database import get_session
 from bot.db.models import ContentSource, NewsArticle, Watchlist
 from bot.config import get_worker_config
+import re
 
 logger = logging.getLogger(__name__)
 config = get_worker_config()
@@ -31,7 +32,17 @@ async def cleanup_old_articles():
         result = await session.execute(stmt)
         await session.commit()
         if result.rowcount > 0:
-            logger.info(f"Cleaned up {result.rowcount} articles older than 30 days.")
+            logger.info(f"Cleaned up {result.rowcount} articles older than 365 days.")
+
+def extract_tickers_aggressively(text: str, active_tickers: list[str]) -> list[str]:
+    found = set()
+    if not text:
+        return []
+    words = re.findall(r'\b\$?([A-Z]{2,10})\b', text)
+    for w in words:
+        if w in active_tickers:
+            found.add(w)
+    return list(found)
 
 async def ingest_rsshub_sources():
     """Fetches Telegram and Substack feeds via RSSHub."""
@@ -45,6 +56,11 @@ async def ingest_rsshub_sources():
 
     if not sources:
         return
+
+    # Fetch all watchlist tickers for extraction
+    async with get_session() as session:
+        result = await session.execute(select(Watchlist.ticker))
+        active_tickers = [r for r in result.scalars().all()]
 
     new_articles = []
     async with aiohttp.ClientSession() as http_session:
@@ -63,20 +79,27 @@ async def ingest_rsshub_sources():
                         xml_data = await resp.text()
                         feed = feedparser.parse(xml_data)
                         
-                        for entry in feed.entries[:5]: # Top 5 recent
+                        for entry in feed.entries[:20]: # Top 20 recent
                             try:
                                 posted_at = parser.parse(entry.published)
                             except:
                                 posted_at = datetime.now(timezone.utc)
                             
+                            content_text = entry.get('description', '')[:2000]
+                            title_text = entry.get('title', '')
+                            
+                            # Aggressive extraction
+                            found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
+                            
                             article = NewsArticle(
                                 source_platform=source.platform,
                                 source_handle=source.handle,
                                 author_name=entry.get('author', source.handle),
-                                title=entry.get('title', ''),
-                                content=entry.get('description', '')[:2000], # Limit content length
+                                title=title_text,
+                                content=content_text, # Limit content length
                                 url=entry.link,
-                                posted_at=posted_at
+                                posted_at=posted_at,
+                                tickers_mentioned=found_tickers if found_tickers else None
                             )
                             new_articles.append(article)
             except Exception as e:
@@ -97,13 +120,42 @@ async def ingest_watchlist_news():
         result = await session.execute(stmt)
         watchlists = result.scalars().all()
     
-    if not watchlists:
-        return
+    # Check if General Market News is active in content_sources
+    async with get_session() as session:
+        stmt = select(ContentSource).where(
+            ContentSource.platform == 'yfinance',
+            ContentSource.handle == 'GeneralMarket',
+            ContentSource.is_active == True
+        )
+        result = await session.execute(stmt)
+        general_active = result.scalars().first() is not None
+        
+        # Also get active tickers for extraction
+        result2 = await session.execute(select(Watchlist.ticker))
+        active_tickers = [r for r in result2.scalars().all()]
 
     async with aiohttp.ClientSession() as http_session:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        
+        urls_to_fetch = []
         for w in watchlists:
-            url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={w.ticker}&region=US&lang=en-US"
+            urls_to_fetch.append({
+                "url": f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={w.ticker}&region=US&lang=en-US",
+                "handle": w.ticker,
+                "base_ticker": [w.ticker]
+            })
+            
+        if general_active:
+            urls_to_fetch.append({
+                "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI,^IXIC&region=US&lang=en-US",
+                "handle": "GeneralMarket",
+                "base_ticker": []
+            })
+            
+        for item in urls_to_fetch:
+            url = item["url"]
+            handle = item["handle"]
+            base_ticker = item["base_ticker"]
             try:
                 async with http_session.get(url, headers=headers, timeout=10) as resp:
                     if resp.status == 200:
@@ -111,21 +163,27 @@ async def ingest_watchlist_news():
                         feed = feedparser.parse(xml_data)
                         
                         new_articles = []
-                        for entry in feed.entries[:5]: # Top 5 recent news per ticker
+                        for entry in feed.entries[:20]: # Top 20 recent news per feed
                             try:
                                 posted_at = parser.parse(entry.published)
                             except:
                                 posted_at = datetime.now(timezone.utc)
 
+                            content_text = entry.get('description', '') or entry.get('summary', '') or entry.get('title', '')
+                            title_text = entry.get('title', '')
+                            
+                            found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
+                            combined_tickers = list(set(base_ticker + found_tickers))
+
                             article = NewsArticle(
                                 source_platform='yfinance',
-                                source_handle=w.ticker,
+                                source_handle=handle,
                                 author_name='Yahoo Finance',
-                                title=entry.get('title', ''),
-                                content=entry.get('description', '') or entry.get('summary', '') or entry.get('title', ''),
+                                title=title_text,
+                                content=content_text,
                                 url=entry.link,
                                 posted_at=posted_at,
-                                tickers_mentioned=[w.ticker]
+                                tickers_mentioned=combined_tickers if combined_tickers else None
                             )
                             new_articles.append(article)
                         
@@ -138,9 +196,9 @@ async def ingest_watchlist_news():
                                 except Exception:
                                     await session.rollback() # Ignores duplicate URLs
                     else:
-                        logger.error(f"Yahoo RSS returned status {resp.status} for {w.ticker}")
+                        logger.error(f"Yahoo RSS returned status {resp.status} for {handle}")
             except Exception as e:
-                logger.error(f"Error fetching Yahoo RSS for {w.ticker}: {e}")
+                logger.error(f"Error fetching Yahoo RSS for {handle}: {e}")
 
 async def run_news_ingestion():
     logger.info("Starting news ingestion cycle...")

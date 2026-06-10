@@ -138,3 +138,116 @@
   background: rgba(0, 255, 153, 0.1);
   color: var(--success);
 }
+
+/* Toggle Switch */
+.viewToggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.toggleBtn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggleBtn:first-child {
+  border-radius: 8px 0 0 8px;
+}
+.toggleBtn:last-child {
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+}
+
+.toggleBtn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* List Layout Specifics */
+.feedList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.feedRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 16px;
+  transition: background 0.2s;
+}
+.feedRow:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.sourceBadge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.badgeTelegram {
+  background: rgba(36, 161, 222, 0.15);
+  color: #24A1DE;
+  border: 1px solid rgba(36, 161, 222, 0.3);
+}
+
+.badgeSubstack {
+  background: rgba(255, 103, 25, 0.15);
+  color: #FF6719;
+  border: 1px solid rgba(255, 103, 25, 0.3);
+}
+
+.badgeYfinance {
+  background: rgba(144, 19, 254, 0.15);
+  color: #9013FE;
+  border: 1px solid rgba(144, 19, 254, 0.3);
+}
+
+.tickerPill {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--foreground);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.rowTitle {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.rowTitle:hover {
+  text-decoration: underline;
+}
+
+.rowContent {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
