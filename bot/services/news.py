@@ -57,6 +57,34 @@ async def log_ingestion(source_platform: str, source_handle: str, status: str, m
         session.add(log_entry)
         await session.commit()
 
+import difflib
+
+async def is_duplicate_article(session, text: str, time_window_hours: int = 12, threshold: float = 0.95) -> bool:
+    if not text or len(text.strip()) < 10:
+        return False # Too short to deduplicate reliably
+        
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=time_window_hours)
+    stmt = select(NewsArticle.content, NewsArticle.title).where(NewsArticle.posted_at >= cutoff)
+    result = await session.execute(stmt)
+    recent_articles = result.all()
+    
+    clean_text = text.lower().strip()
+    
+    for content, title in recent_articles:
+        existing_text = f"{title or ''} {content or ''}".lower().strip()
+        
+        # Fast length check before running SequenceMatcher
+        if not existing_text:
+            continue
+        if len(clean_text) > len(existing_text) * 1.5 or len(existing_text) > len(clean_text) * 1.5:
+            continue
+            
+        similarity = difflib.SequenceMatcher(None, clean_text, existing_text).ratio()
+        if similarity >= threshold:
+            return True
+            
+    return False
+
 async def ingest_custom_sources():
     """Fetches Substack via their RSS feeds. Telegram is handled via real-time Telethon streaming."""
     async with get_session() as session:
@@ -99,6 +127,13 @@ async def ingest_custom_sources():
                                     posted_at = datetime.now(timezone.utc)
                                 content_text = entry.get('description', '')[:2000]
                                 title_text = entry.get('title', '')
+                                
+                                async with get_session() as session:
+                                    is_dup = await is_duplicate_article(session, title_text + " " + content_text)
+                                    if is_dup:
+                                        await log_ingestion('substack', source.handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
+                                        continue
+                                
                                 found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
                                 article = NewsArticle(
                                     source_platform=source.platform,
@@ -190,6 +225,12 @@ async def ingest_watchlist_news():
 
                             content_text = entry.get('description', '') or entry.get('summary', '') or entry.get('title', '')
                             title_text = entry.get('title', '')
+                            
+                            async with get_session() as session:
+                                is_dup = await is_duplicate_article(session, title_text + " " + content_text)
+                                if is_dup:
+                                    await log_ingestion('yfinance', handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
+                                    continue
                             
                             found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
                             combined_tickers = list(set(base_ticker + found_tickers))

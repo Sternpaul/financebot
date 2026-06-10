@@ -85,6 +85,13 @@ async def start_telegram_streaming():
             message_id = event.message.id
             url = f"https://t.me/{sender_handle}/{message_id}"
             
+            from bot.services.news import is_duplicate_article
+            async with AsyncSessionLocal() as session:
+                is_dup = await is_duplicate_article(session, content_text)
+                if is_dup:
+                    await log_ingestion('telegram', sender_handle, 'NO_NEW_DATA', f"Duplicate skipped: {message_id}")
+                    return
+            
             found_tickers = extract_tickers_aggressively(content_text, active_tickers)
             
             article = NewsArticle(
