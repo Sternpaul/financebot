@@ -56,6 +56,7 @@ class NewsArticle(Base):
     tickers_mentioned = Column(JSONB)
     sentiment = Column(Float)
     ingested_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_synthesized = Column(Boolean, default=False, server_default='false')
 
 class TechnicalAlert(Base):
     __tablename__ = 'technical_alerts'

@@ -22,10 +22,9 @@ async def run_brain_synthesis():
     
     try:
         async with AsyncSessionLocal() as session:
-            # Find unprocessed news articles from the last 1 hour
-            cutoff_news = datetime.now(timezone.utc) - timedelta(hours=1)
+            # Find unprocessed news articles
             result = await session.execute(
-                select(NewsArticle).where(NewsArticle.posted_at >= cutoff_news)
+                select(NewsArticle).where(NewsArticle.is_synthesized == False)
             )
             recent_news = result.scalars().all()
             
@@ -122,6 +121,11 @@ async def run_brain_synthesis():
                 await log_ingestion('ai_brain', 'synthesis', 'SUCCESS', msg)
             else:
                 await log_ingestion('ai_brain', 'synthesis', 'ERROR', f'Failed to synthesize any knowledge. Active Brain Size: {est_tokens} tokens.')
+
+            # Mark as synthesized to prevent duplicates on restart
+            for article in recent_news:
+                article.is_synthesized = True
+            await session.commit()
 
         logger.info("Brain Synthesis cycle completed.")
     except Exception as e:
