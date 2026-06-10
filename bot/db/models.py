@@ -113,4 +113,5 @@ class MarketKnowledge(Base):
     knowledge_type = Column(String, nullable=False) # e.g., 'sentiment', 'catalyst', 'risk', 'macro'
     content = Column(Text, nullable=False)
     source_article_ids = Column(JSONB, default=list) # List of related NewsArticle IDs
+    is_archived = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
