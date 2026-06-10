@@ -86,8 +86,12 @@ async def backfill(handles_to_backfill: list[str] = None):
                         await session.rollback()
                 
                 logger.info(f"Inserted {count} new messages for {source_handle}")
+                from bot.services.news import log_ingestion
+                await log_ingestion('telegram_backfill', source_handle, 'SUCCESS', f"Inserted {count} historical messages.")
             except Exception as e:
                 logger.error(f"Failed to backfill {source_handle}: {e}")
+                from bot.services.news import log_ingestion
+                await log_ingestion('telegram_backfill', source_handle, 'ERROR', str(e))
         # Do not disconnect client as it's shared with streaming
 
 async def run_telegram_backfill_check(redis: Redis = None):

@@ -5,10 +5,11 @@ import { fetchIngestionLogs } from '@/app/actions/logs';
 
 export default function IngestionLogs() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'raw' | 'ai'>('raw');
 
   useEffect(() => {
     const fetchLogs = async () => {
-      const data = await fetchIngestionLogs(50);
+      const data = await fetchIngestionLogs(100);
       setLogs(data);
     };
 
@@ -17,15 +18,48 @@ export default function IngestionLogs() {
     return () => clearInterval(interval);
   }, []);
 
+  const filteredLogs = logs.filter(log => {
+    if (activeTab === 'ai') return log.source_platform === 'ai_brain';
+    return log.source_platform !== 'ai_brain';
+  });
+
   return (
     <div style={{ marginTop: '40px', padding: '20px', borderTop: '2px solid #333' }}>
-      <h2 style={{ marginBottom: '10px' }}>Real-Time Ingestion Logs</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <h2>System Logs</h2>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setActiveTab('raw')}
+            style={{ 
+              padding: '6px 12px', 
+              background: activeTab === 'raw' ? 'var(--accent-primary)' : 'transparent',
+              color: activeTab === 'raw' ? '#fff' : 'var(--text-secondary)',
+              border: '1px solid var(--accent-primary)',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}>
+            Raw Ingestion
+          </button>
+          <button 
+            onClick={() => setActiveTab('ai')}
+            style={{ 
+              padding: '6px 12px', 
+              background: activeTab === 'ai' ? '#bb86fc' : 'transparent',
+              color: activeTab === 'ai' ? '#000' : 'var(--text-secondary)',
+              border: '1px solid #bb86fc',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}>
+            AI Brain Activity
+          </button>
+        </div>
+      </div>
       <div 
         style={{ 
           fontFamily: 'monospace', 
           fontSize: '12px', 
           backgroundColor: '#000', 
-          color: '#0f0', 
+          color: activeTab === 'ai' ? '#e0b0ff' : '#0f0', 
           padding: '10px', 
           borderRadius: '5px',
           height: '400px',
@@ -33,12 +67,12 @@ export default function IngestionLogs() {
           whiteSpace: 'pre-wrap'
         }}
       >
-        {logs.length === 0 ? 'Waiting for logs...' : logs.map(log => {
+        {filteredLogs.length === 0 ? 'Waiting for logs...' : filteredLogs.map(log => {
           const time = new Date(log.timestamp).toLocaleTimeString();
           const prefix = `[${time}] [${log.source_platform.toUpperCase()}] [${log.source_handle}]`;
           const status = `[${log.status}]`;
           return (
-            <div key={log.id} style={{ marginBottom: '4px', color: log.status === 'ERROR' ? '#f00' : log.status === 'SUCCESS' ? '#0f0' : '#888' }}>
+            <div key={log.id} style={{ marginBottom: '4px', color: log.status === 'ERROR' ? '#f00' : log.status === 'SUCCESS' ? (activeTab === 'ai' ? '#e0b0ff' : '#0f0') : '#888' }}>
               {prefix} {status} {log.message}
             </div>
           );

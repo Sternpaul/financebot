@@ -65,7 +65,7 @@ async def main():
     from bot.services.news import run_news_ingestion
     from bot.services.alerts import run_technical_alerts_check
     from bot.backfill_telegram import run_telegram_backfill_check
-    from bot.services.brain import run_brain_synthesis, generate_morning_report
+    from bot.services.brain import run_brain_synthesis, generate_morning_report, run_daily_compaction
     
     # Add jobs to scheduler
     # Technical Alerts Engine (Every 1 minute for real-time checking)
@@ -79,6 +79,9 @@ async def main():
     
     # New Phase 5 jobs
     scheduler.add_job(run_brain_synthesis, 'interval', minutes=30)
+    
+    # Daily Compaction
+    scheduler.add_job(run_daily_compaction, 'interval', hours=24)
     
     # Morning report scheduling
     report_time = config.morning_report_time.split(":")
