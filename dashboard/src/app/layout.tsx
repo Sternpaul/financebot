@@ -32,8 +32,8 @@ export const viewport: Viewport = {
 };
 
 import Navbar from "@/components/Navbar";
-
 import { AppProvider } from "@/components/AppContext";
+import ChatWidget from "@/components/ChatWidget";
 
 export default function RootLayout({
   children,
@@ -46,6 +46,7 @@ export default function RootLayout({
         <AppProvider>
           <Navbar />
           {children}
+          <ChatWidget />
         </AppProvider>
       </body>
     </html>

@@ -65,7 +65,8 @@ async def main():
     from bot.services.news import run_news_ingestion
     from bot.services.alerts import run_technical_alerts_check
     from bot.backfill_telegram import run_telegram_backfill_check
-
+    from bot.services.brain import run_brain_synthesis, generate_morning_report
+    
     # Add jobs to scheduler
     # Technical Alerts Engine (Every 1 minute for real-time checking)
     scheduler.add_job(run_technical_alerts_check, 'interval', minutes=1, args=[redis])
@@ -76,8 +77,16 @@ async def main():
     # Telegram Backfill Check (Every 1 minute)
     scheduler.add_job(run_telegram_backfill_check, 'interval', minutes=1, args=[redis])
     
+    # New Phase 5 jobs
+    scheduler.add_job(run_brain_synthesis, 'interval', minutes=30)
+    
+    # Morning report scheduling
+    report_time = config.morning_report_time.split(":")
+    scheduler.add_job(generate_morning_report, 'cron', hour=int(report_time[0]), minute=int(report_time[1]))
+    
     # Run once immediately on startup so we don't have to wait 1 minute for the first data
     asyncio.create_task(run_news_ingestion())
+    asyncio.create_task(run_brain_synthesis())
     
     # Start Telegram Telethon client for real-time WebSockets
     asyncio.create_task(start_telegram_streaming())

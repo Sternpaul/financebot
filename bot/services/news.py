@@ -177,6 +177,14 @@ async def ingest_watchlist_news():
         stmt = select(Watchlist).where(Watchlist.alert_news == True)
         result = await session.execute(stmt)
         watchlists = result.scalars().all()
+
+        from bot.db.models import Transaction
+        stmt_portfolio = select(Transaction.ticker).where(Transaction.ticker.is_not(None)).distinct()
+        res_port = await session.execute(stmt_portfolio)
+        portfolio_tickers = res_port.scalars().all()
+    
+    target_tickers = set(w.ticker for w in watchlists)
+    target_tickers.update(portfolio_tickers)
     
     # Check all active general market indices (yfinance platform in content_sources)
     async with get_session() as session:
@@ -200,11 +208,11 @@ async def ingest_watchlist_news():
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         
         urls_to_fetch = []
-        for w in watchlists:
+        for ticker in target_tickers:
             urls_to_fetch.append({
-                "url": f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={w.ticker}&region=US&lang=en-US",
-                "handle": w.ticker,
-                "base_ticker": [w.ticker]
+                "url": f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US",
+                "handle": ticker,
+                "base_ticker": [ticker]
             })
             
         for g_source in general_active_sources:
