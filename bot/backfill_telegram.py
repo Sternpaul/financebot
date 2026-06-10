@@ -15,26 +15,33 @@ logger = logging.getLogger(__name__)
 API_ID = os.getenv("TELEGRAM_API_ID")
 API_HASH = os.getenv("TELEGRAM_API_HASH")
 
+from redis.asyncio import Redis
+
+from bot.telegram_client import client
+
 async def get_active_tickers(session):
     result = await session.execute(select(Watchlist.ticker))
     return [r for r in result.scalars().all()]
 
-async def backfill():
-    client = TelegramClient(
-        'sessions/bot', 
-        int(API_ID) if API_ID else 0, 
-        API_HASH
-    )
-    
-    await client.connect()
+async def backfill(handles_to_backfill: list[str] = None):
+    if not client:
+        logger.error("Telegram client is not initialized.")
+        return
+        
+    if not client.is_connected():
+        await client.connect()
+        
     if not await client.is_user_authorized():
         logger.error("Session is not authorized. Please log in using login_telegram.py first.")
         return
     
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(ContentSource).where(ContentSource.platform == 'telegram', ContentSource.is_active == True))
-        sources = result.scalars().all()
-        source_handles = [s.handle for s in sources]
+        if handles_to_backfill is None:
+            result = await session.execute(select(ContentSource).where(ContentSource.platform == 'telegram', ContentSource.is_active == True))
+            sources = result.scalars().all()
+            source_handles = [s.handle for s in sources]
+        else:
+            source_handles = handles_to_backfill
         
         active_tickers = await get_active_tickers(session)
         
@@ -81,8 +88,31 @@ async def backfill():
                 logger.info(f"Inserted {count} new messages for {source_handle}")
             except Exception as e:
                 logger.error(f"Failed to backfill {source_handle}: {e}")
+        # Do not disconnect client as it's shared with streaming
 
-    await client.disconnect()
+async def run_telegram_backfill_check(redis: Redis = None):
+    logger.info("Running Telegram backfill check for new/reactivated channels...")
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(ContentSource).where(ContentSource.platform == 'telegram', ContentSource.is_active == True))
+        active_sources = result.scalars().all()
+        active_handles = [s.handle for s in active_sources]
+    
+    handles_to_backfill = []
+    if redis:
+        for handle in active_handles:
+            is_cached = await redis.get(f"backfill:telegram:{handle}")
+            if not is_cached:
+                handles_to_backfill.append(handle)
+    else:
+        # Without redis cache, don't run automatically to avoid spamming
+        pass
+
+    if handles_to_backfill:
+        logger.info(f"Found new/reactivated Telegram channels to backfill: {handles_to_backfill}")
+        await backfill(handles_to_backfill)
+        if redis:
+            for handle in handles_to_backfill:
+                await redis.set(f"backfill:telegram:{handle}", "1")
 
 if __name__ == "__main__":
     asyncio.run(backfill())

@@ -64,6 +64,7 @@ async def main():
 
     from bot.services.news import run_news_ingestion
     from bot.services.alerts import run_technical_alerts_check
+    from bot.backfill_telegram import run_telegram_backfill_check
 
     # Add jobs to scheduler
     # Technical Alerts Engine (Every 1 minute for real-time checking)
@@ -71,6 +72,9 @@ async def main():
     
     # News Ingestion Engine (Every 1 minute)
     scheduler.add_job(run_news_ingestion, 'interval', minutes=1)
+    
+    # Telegram Backfill Check (Every 1 minute)
+    scheduler.add_job(run_telegram_backfill_check, 'interval', minutes=1, args=[redis])
     
     # Run once immediately on startup so we don't have to wait 1 minute for the first data
     asyncio.create_task(run_news_ingestion())
