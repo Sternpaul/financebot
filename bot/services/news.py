@@ -117,9 +117,11 @@ async def ingest_custom_sources():
                             
                             if not feed.entries:
                                 await log_ingestion('substack', source.handle, 'NO_NEW_DATA', 'Feed successfully parsed but returned 0 entries.')
-                            else:
-                                await log_ingestion('substack', source.handle, 'SUCCESS', f'Fetched {len(feed.entries)} entries.')
+                                continue
                                 
+                            new_count = 0
+                            dup_count = 0
+                            
                             for entry in feed.entries[:20]:
                                 try:
                                     posted_at = parser.parse(entry.published)
@@ -130,7 +132,7 @@ async def ingest_custom_sources():
                                 
                                 is_dup = is_duplicate_article(title_text + " " + content_text, recent_articles)
                                 if is_dup:
-                                    await log_ingestion('substack', source.handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
+                                    dup_count += 1
                                     continue
                                 
                                 found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
@@ -145,6 +147,12 @@ async def ingest_custom_sources():
                                     tickers_mentioned=found_tickers if found_tickers else None
                                 )
                                 new_articles.append(article)
+                                new_count += 1
+                                
+                            if new_count > 0:
+                                await log_ingestion('substack', source.handle, 'SUCCESS', f'Fetched {len(feed.entries)} entries: {new_count} new, {dup_count} duplicates.')
+                            elif dup_count > 0:
+                                await log_ingestion('substack', source.handle, 'NO_NEW_DATA', f'All {dup_count} entries were duplicates.')
                         else:
                             error_msg = f"Substack feed returned status {resp.status}"
                             logger.error(f"{error_msg} for {source.handle}")
@@ -217,10 +225,12 @@ async def ingest_watchlist_news():
                         
                         if not feed.entries:
                             await log_ingestion('yfinance', handle, 'NO_NEW_DATA', 'Feed successfully parsed but returned 0 entries.')
-                        else:
-                            await log_ingestion('yfinance', handle, 'SUCCESS', f'Fetched {len(feed.entries)} entries.')
-                        
+                            continue
+                            
+                        new_count = 0
+                        dup_count = 0
                         new_articles = []
+                        
                         for entry in feed.entries[:20]: # Top 20 recent news per feed
                             try:
                                 posted_at = parser.parse(entry.published)
@@ -232,7 +242,7 @@ async def ingest_watchlist_news():
                             
                             is_dup = is_duplicate_article(title_text + " " + content_text, recent_articles)
                             if is_dup:
-                                await log_ingestion('yfinance', handle, 'NO_NEW_DATA', f"Duplicate skipped: {title_text}")
+                                dup_count += 1
                                 continue
                             
                             found_tickers = extract_tickers_aggressively(title_text + " " + content_text, active_tickers)
@@ -249,6 +259,12 @@ async def ingest_watchlist_news():
                                 tickers_mentioned=combined_tickers if combined_tickers else None
                             )
                             new_articles.append(article)
+                            new_count += 1
+                        
+                        if new_count > 0:
+                            await log_ingestion('yfinance', handle, 'SUCCESS', f'Fetched {len(feed.entries)} entries: {new_count} new, {dup_count} duplicates.')
+                        elif dup_count > 0:
+                            await log_ingestion('yfinance', handle, 'NO_NEW_DATA', f'All {dup_count} entries were duplicates.')
                         
                         # Save to database
                         async with get_session() as session:
