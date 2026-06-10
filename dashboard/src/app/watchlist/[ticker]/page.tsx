@@ -133,12 +133,12 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
         </div>
         {quote && (
           <div style={{ textAlign: 'right' }}>
-            <h1 style={{ margin: 0, fontSize: '3rem', color: 'var(--foreground)' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
               {currencySymbol}{(price * exchangeRate).toFixed(2)}
-            </h1>
-            <h3 style={{ margin: 0, color: isPositive ? 'var(--success)' : 'var(--danger)' }}>
-              {isPositive ? '+' : ''}{(change * exchangeRate).toFixed(2)} ({changePct.toFixed(2)}%)
-            </h3>
+            </div>
+            <div style={{ fontSize: '1.2rem', fontWeight: '500', color: isPositive ? 'var(--success)' : 'var(--danger)' }}>
+              {isPositive ? '+' : ''}{(change * exchangeRate).toFixed(2)} ({pctChange.toFixed(2)}%)
+            </div>
           </div>
         )}
       </div>
