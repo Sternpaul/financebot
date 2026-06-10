@@ -72,8 +72,13 @@ export default function PortfolioManager() {
         submitPrice = convertedCost; 
       }
 
-      await addTransaction(type, submitTicker, submitShares, submitPrice, dateBought);
+      const res = await addTransaction(type, submitTicker, submitShares, submitPrice, dateBought);
       
+      if (!res.success) {
+          alert("Failed to add transaction: " + (res.error || "Unknown error"));
+          return;
+      }
+
       setTicker("");
       setShares("");
       setDateBought("");
