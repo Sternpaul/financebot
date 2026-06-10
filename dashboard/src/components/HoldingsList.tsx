@@ -50,11 +50,13 @@ export default function HoldingsList({ holdings, mode = "portfolio", exchangeRat
         
         const sparkData = h.sparkline && h.sparkline.length > 0 ? h.sparkline : [{ value: h.avg_cost }, { value: h.currentPrice }];
         
+        const isClosed = h.marketState === 'CLOSED';
+        
         return (
-          <div key={h.id || h.ticker} className="glass-panel" style={{ display: "grid", gridTemplateColumns: mode === "portfolio" ? "1.5fr 1fr 1fr 1.5fr" : "1.5fr 1fr 1fr 0.5fr", gap: "10px", padding: "16px 20px", alignItems: "center", transition: "all 0.2s ease" }}>
+          <div key={h.id || h.ticker} className="glass-panel" style={{ display: "grid", gridTemplateColumns: mode === "portfolio" ? "1.5fr 1fr 1fr 1.5fr" : "1.5fr 1fr 1fr 0.5fr", gap: "10px", padding: "16px 20px", alignItems: "center", transition: "all 0.2s ease", opacity: isClosed ? 0.6 : 1.0 }}>
             
             {/* 1. Identity */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px", overflow: "hidden" }}>
               {h.isCash ? (
                  <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--foreground)" }}>{h.ticker}</span>
               ) : (
@@ -62,8 +64,8 @@ export default function HoldingsList({ holdings, mode = "portfolio", exchangeRat
                   <Link href={`/watchlist/${encodeURIComponent(h.ticker)}`} style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--foreground)", textDecoration: "none" }}>
                     {h.ticker}
                   </Link>
-                  {h.marketState && (
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "3px" }}>
+                  {h.marketState && h.marketState !== 'UNKNOWN' && (
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "3px", padding: "2px 6px", background: "var(--bg-secondary)", borderRadius: "10px", border: "1px solid var(--glass-border)" }}>
                       <span style={{ 
                         fontSize: "0.5rem",
                         color: h.marketState === 'OPEN' ? 'var(--success)' : 

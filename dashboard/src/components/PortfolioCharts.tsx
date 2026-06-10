@@ -73,21 +73,12 @@ export default function PortfolioCharts({ holdingsWithPrices, transactions, exch
         });
         let sortedTimes = Array.from(allTimestamps).sort((a, b) => a - b);
 
-        // Midnight Reset Logic for 1D chart
+        // Reset Exactly When Market Opens Logic for 1D chart
         if (timeRange === '1D') {
             const now = new Date();
-            let isTradingDay = false;
             let hasTodayData = false;
 
-            holdingsWithPrices.forEach(h => {
-               if (h.regularMarketStart) {
-                   const startDay = new Date(h.regularMarketStart * 1000);
-                   if (startDay.getDate() === now.getDate() && startDay.getMonth() === now.getMonth() && startDay.getFullYear() === now.getFullYear()) {
-                       isTradingDay = true;
-                   }
-               }
-            });
-
+            // Check if Yahoo Finance has returned any data points for the current calendar day
             sortedTimes.forEach(ts => {
                const tsDate = new Date(ts * 1000);
                if (tsDate.getDate() === now.getDate() && tsDate.getMonth() === now.getMonth() && tsDate.getFullYear() === now.getFullYear()) {
@@ -95,18 +86,16 @@ export default function PortfolioCharts({ holdingsWithPrices, transactions, exch
                }
             });
 
-            if (isTradingDay) {
-                if (!hasTodayData) {
-                    const midnight = new Date(now);
-                    midnight.setHours(0, 0, 0, 0);
-                    sortedTimes = [midnight.getTime() / 1000, now.getTime() / 1000];
-                } else {
-                    sortedTimes = sortedTimes.filter(ts => {
-                        const tsDate = new Date(ts * 1000);
-                        return tsDate.getDate() === now.getDate() && tsDate.getMonth() === now.getMonth() && tsDate.getFullYear() === now.getFullYear();
-                    });
-                }
+            if (hasTodayData) {
+                // The market has opened today and we have fresh data.
+                // Reset the chart by filtering out any trailing data from yesterday.
+                sortedTimes = sortedTimes.filter(ts => {
+                    const tsDate = new Date(ts * 1000);
+                    return tsDate.getDate() === now.getDate() && tsDate.getMonth() === now.getMonth() && tsDate.getFullYear() === now.getFullYear();
+                });
             } else {
+               // The market hasn't opened yet today (or it's a weekend).
+               // Retain the most recent full day's worth of data so the chart is never empty.
                if (sortedTimes.length > 0) {
                    const lastTsDate = new Date(sortedTimes[sortedTimes.length - 1] * 1000);
                    sortedTimes = sortedTimes.filter(ts => {
