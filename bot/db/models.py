@@ -104,3 +104,13 @@ class IdeationEmbedding(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     document = relationship("IdeationDocument", back_populates="embeddings")
+
+class MarketKnowledge(Base):
+    __tablename__ = 'market_knowledge'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ticker = Column(String, nullable=True) # Ticker or None for macro
+    knowledge_type = Column(String, nullable=False) # e.g., 'sentiment', 'catalyst', 'risk', 'macro'
+    content = Column(Text, nullable=False)
+    source_article_ids = Column(JSONB, default=list) # List of related NewsArticle IDs
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

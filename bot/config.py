@@ -34,7 +34,8 @@ class WorkerConfig(SharedConfig):
     # LLM & Embedding
     llm_provider: str = Field("openrouter", alias="LLM_PROVIDER")
     llm_api_key: Optional[str] = Field(None, alias="LLM_API_KEY")
-    llm_model: str = Field("nvidia/nemotron-3-ultra:free", alias="LLM_MODEL")
+    llm_model: str = Field("nex-agi/nex-n2-pro:free", alias="LLM_MODEL")
+    scaledown_api_key: Optional[str] = Field(None, alias="SCALEDOWN_API_KEY")
     embedding_provider: str = Field("openai", alias="EMBEDDING_PROVIDER")
     openai_api_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
 
