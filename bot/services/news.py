@@ -74,7 +74,7 @@ async def ingest_rsshub_sources():
                 continue
                 
             try:
-                async with http_session.get(url, timeout=10) as resp:
+                async with http_session.get(url, timeout=30) as resp:
                     if resp.status == 200:
                         xml_data = await resp.text()
                         feed = feedparser.parse(xml_data)
@@ -103,7 +103,7 @@ async def ingest_rsshub_sources():
                             )
                             new_articles.append(article)
             except Exception as e:
-                logger.error(f"Error fetching RSSHub for {source.handle}: {e}")
+                logger.error(f"Error fetching RSSHub for {source.handle}: {type(e).__name__} {e}")
 
     async with get_session() as session:
         for article in new_articles:

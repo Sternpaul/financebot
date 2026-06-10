@@ -36,7 +36,7 @@ async def run_technical_alerts_check(redis_client: Redis):
     """
     logger.info("Running technical alerts check...")
     
-    async for session in get_session():
+    async with get_session() as session:
         stmt = select(Watchlist)
         result = await session.execute(stmt)
         watchlists = result.scalars().all()
