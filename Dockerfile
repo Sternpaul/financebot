@@ -18,7 +18,8 @@ COPY alembic/ alembic/
 COPY scratch/ scratch/
 COPY login_telegram.py .
 
-# User should not run as root
+# Create sessions dir and set ownership so named volume inherits it
+RUN mkdir -p /app/sessions
 RUN useradd -m botuser && chown -R botuser /app
 USER botuser
 
