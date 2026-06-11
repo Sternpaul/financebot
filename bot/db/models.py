@@ -118,3 +118,16 @@ class MarketKnowledge(Base):
     source_article_ids = Column(JSONB, default=list) # List of related NewsArticle IDs
     is_archived = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class AlertPerformance(Base):
+    __tablename__ = 'alert_performance'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    alert_id = Column(BigInteger, ForeignKey('technical_alerts.id', ondelete='CASCADE'), nullable=False, unique=True)
+    forward_3d = Column(Float, nullable=True)
+    forward_7d = Column(Float, nullable=True)
+    forward_30d = Column(Float, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Optional back-reference if needed
+    alert = relationship("TechnicalAlert", backref="performance")

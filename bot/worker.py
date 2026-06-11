@@ -63,7 +63,7 @@ async def main():
         loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(s)))
 
     from bot.services.news import run_news_ingestion
-    from bot.services.alerts import run_technical_alerts_check
+    from bot.services.alerts import run_technical_alerts_check, evaluate_alert_performance
     from bot.backfill_telegram import run_telegram_backfill_check
     from bot.services.brain import run_brain_synthesis, generate_morning_report, run_daily_compaction
     from bot.db.seed import seed_core_sources
@@ -74,6 +74,9 @@ async def main():
     # Add jobs to scheduler
     # Technical Alerts Engine
     scheduler.add_job(run_technical_alerts_check, 'interval', minutes=config.cron_alerts_interval_minutes, args=[redis])
+    
+    # Alert Performance Evaluation (Runs daily)
+    scheduler.add_job(evaluate_alert_performance, 'cron', hour=1, minute=0)
     
     # News Ingestion Engine
     scheduler.add_job(run_news_ingestion, 'interval', minutes=config.cron_news_interval_minutes)

@@ -3,6 +3,7 @@ import SourcesManager from '@/components/SourcesManager';
 
 import GlobalAlerts from '@/components/GlobalAlerts';
 import AlertHistory from '@/components/AlertHistory';
+import DiscordTestButton from '@/components/DiscordTestButton';
 
 export default function Settings() {
   return (
@@ -12,6 +13,11 @@ export default function Settings() {
         <p style={{ color: 'var(--text-secondary)' }}>
           To change configurations like Discord Tokens, API Keys, or Alert Thresholds, please edit the <code>.env</code> file directly on your Debian host and restart the bot containers.
         </p>
+
+        <div style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginTop: 0, color: 'var(--foreground)' }}>Integrations</h3>
+          <DiscordTestButton />
+        </div>
 
         <GlobalAlerts />
         

@@ -2,9 +2,9 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default async function AlertHistory() {
-  const { data: alerts } = await supabase
+  const { data: alerts, error } = await supabase
     .from('technical_alerts')
-    .select('*')
+    .select('*, alert_performance(forward_3d, forward_7d, forward_30d)')
     .order('triggered_at', { ascending: false })
     .limit(50);
 
@@ -26,7 +26,9 @@ export default async function AlertHistory() {
                 <th style={{ padding: '8px', color: 'var(--text-secondary)' }}>Event</th>
                 <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-secondary)' }}>Price</th>
                 <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-secondary)' }}>Change</th>
-                <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-secondary)' }}>Vol Ratio</th>
+                <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-secondary)' }}>3d Ret</th>
+                <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-secondary)' }}>7d Ret</th>
+                <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-secondary)' }}>30d Ret</th>
               </tr>
             </thead>
             <tbody>
@@ -60,8 +62,14 @@ export default async function AlertHistory() {
                     <td style={{ padding: '10px 8px', textAlign: 'right', color: alert.pct_change < 0 ? 'var(--danger)' : 'var(--success)' }}>
                       {alert.pct_change > 0 ? '+' : ''}{alert.pct_change?.toFixed(2) || '-'}%
                     </td>
-                    <td style={{ padding: '10px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                      {alert.volume_ratio ? `${alert.volume_ratio.toFixed(1)}x` : '-'}
+                    <td style={{ padding: '10px 8px', textAlign: 'right', color: alert.alert_performance?.[0]?.forward_3d > 0 ? 'var(--success)' : alert.alert_performance?.[0]?.forward_3d < 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                      {alert.alert_performance?.[0]?.forward_3d ? `${alert.alert_performance[0].forward_3d > 0 ? '+' : ''}${alert.alert_performance[0].forward_3d.toFixed(1)}%` : '-'}
+                    </td>
+                    <td style={{ padding: '10px 8px', textAlign: 'right', color: alert.alert_performance?.[0]?.forward_7d > 0 ? 'var(--success)' : alert.alert_performance?.[0]?.forward_7d < 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                      {alert.alert_performance?.[0]?.forward_7d ? `${alert.alert_performance[0].forward_7d > 0 ? '+' : ''}${alert.alert_performance[0].forward_7d.toFixed(1)}%` : '-'}
+                    </td>
+                    <td style={{ padding: '10px 8px', textAlign: 'right', color: alert.alert_performance?.[0]?.forward_30d > 0 ? 'var(--success)' : alert.alert_performance?.[0]?.forward_30d < 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                      {alert.alert_performance?.[0]?.forward_30d ? `${alert.alert_performance[0].forward_30d > 0 ? '+' : ''}${alert.alert_performance[0].forward_30d.toFixed(1)}%` : '-'}
                     </td>
                   </tr>
                 );

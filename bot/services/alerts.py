@@ -6,7 +6,7 @@ from datetime import timedelta
 from sqlalchemy import select, func
 
 from bot.db.database import get_session
-from bot.db.models import Watchlist, TechnicalAlert
+from bot.db.models import Watchlist, TechnicalAlert, AlertPerformance
 from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -223,3 +223,94 @@ async def run_technical_alerts_check(redis_client: Redis):
                     await fire_alert("TARGET_ABOVE", price_target)
                 elif price_direction == "DOWN" and price <= float(price_target):
                     await fire_alert("TARGET_BELOW", price_target)
+
+async def evaluate_alert_performance():
+    """
+    Background job that checks past alerts and computes their forward returns
+    (3d, 7d, 30d) by querying historical prices.
+    """
+    logger.info("Evaluating alert performance...")
+    from datetime import timezone
+    import yfinance as yf
+    
+    async with get_session() as session:
+        # Find alerts that either don't have an AlertPerformance record, or are missing 30d performance
+        # We'll just fetch alerts from the last 40 days that haven't been fully evaluated.
+        stmt = select(TechnicalAlert).outerjoin(AlertPerformance).where(
+            (AlertPerformance.id == None) | (AlertPerformance.forward_30d == None)
+        )
+        result = await session.execute(stmt)
+        alerts = result.scalars().all()
+        
+        if not alerts:
+            return
+            
+        now = datetime.now(timezone.utc)
+        
+        # Group by ticker to minimize yfinance calls
+        ticker_map = {}
+        for a in alerts:
+            if a.ticker not in ticker_map:
+                ticker_map[a.ticker] = []
+            ticker_map[a.ticker].append(a)
+            
+        for ticker, t_alerts in ticker_map.items():
+            try:
+                # Fetch 40 days of history ending today
+                def get_hist():
+                    return yf.download(ticker, period="40d", interval="1d", progress=False)
+                    
+                hist = await asyncio.to_thread(get_hist)
+                if hist.empty:
+                    continue
+                    
+                for alert in t_alerts:
+                    alert_date = alert.triggered_at
+                    
+                    # Ensure AlertPerformance exists
+                    perf_stmt = select(AlertPerformance).where(AlertPerformance.alert_id == alert.id)
+                    perf_res = await session.execute(perf_stmt)
+                    perf = perf_res.scalars().first()
+                    
+                    if not perf:
+                        perf = AlertPerformance(alert_id=alert.id)
+                        session.add(perf)
+                        
+                    # Helper to get price N days after alert
+                    def get_forward_price(days):
+                        target_date = alert_date + timedelta(days=days)
+                        if target_date > now:
+                            return None
+                        # Find the closest trading day >= target_date
+                        # hist.index are timezone-naive or tz-aware depending on yfinance version
+                        # We convert to utc date
+                        target_d = target_date.date()
+                        future_prices = hist[hist.index.date >= target_d]
+                        if not future_prices.empty:
+                            # Use Close price of that day
+                            val = future_prices.iloc[0]['Close']
+                            # if it's a Series (multi-level column), extract scalar
+                            if hasattr(val, 'item'):
+                                return val.item()
+                            return float(val)
+                        return None
+                        
+                    price_3d = get_forward_price(3)
+                    price_7d = get_forward_price(7)
+                    price_30d = get_forward_price(30)
+                    
+                    base_price = alert.price_at_alert
+                    
+                    if price_3d is not None and perf.forward_3d is None:
+                        perf.forward_3d = ((price_3d - base_price) / base_price) * 100
+                    if price_7d is not None and perf.forward_7d is None:
+                        perf.forward_7d = ((price_7d - base_price) / base_price) * 100
+                    if price_30d is not None and perf.forward_30d is None:
+                        perf.forward_30d = ((price_30d - base_price) / base_price) * 100
+                        
+            except Exception as e:
+                logger.error(f"Failed to evaluate performance for {ticker}: {e}")
+                
+        await session.commit()
+        logger.info("Alert performance evaluation complete.")
+
