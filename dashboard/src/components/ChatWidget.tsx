@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import styles from './ChatWidget.module.css';
+import { useAppContext } from './AppContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,6 +18,8 @@ export default function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const { chatTrigger, setChatTrigger } = useAppContext();
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -25,36 +28,96 @@ export default function ChatWidget() {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = useCallback(async (forcedInput?: string | React.MouseEvent | React.KeyboardEvent) => {
+    // If it's an event object, ignore it
+    const textToSend = (typeof forcedInput === 'string' ? forcedInput : input.trim());
+    if (!textToSend || isLoading) return;
 
-    const userMsg: Message = { role: 'user', content: input.trim() };
+    const userMsg: Message = { role: 'user', content: textToSend };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
-    setInput('');
+    if (typeof forcedInput !== 'string') setInput('');
     setIsLoading(true);
 
     try {
-      // Send only the chat history
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
-      });
+      // Check if it's an explanation request
+      const explainMatch = textToSend.match(/^Explain today's move for ([A-Z0-9]+)$/i);
+      
+      if (explainMatch) {
+        const ticker = explainMatch[1].toUpperCase();
+        const res = await fetch('/api/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticker }),
+        });
 
-      if (!res.ok) throw new Error('Network error');
+        if (!res.ok) throw new Error('Network error');
+        if (!res.body) throw new Error('No body stream');
 
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+        setIsLoading(false); // Stop loading animation since we're streaming
+        
+        // Add empty assistant message to start appending to
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        
+        let done = false;
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            for (const line of lines) {
+              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                try {
+                  const data = JSON.parse(line.substring(6));
+                  const text = data.choices?.[0]?.delta?.content || '';
+                  if (text) {
+                    setMessages(prev => {
+                      const updated = [...prev];
+                      updated[updated.length - 1].content += text;
+                      return updated;
+                    });
+                  }
+                } catch (e) {
+                  // Ignore JSON parse errors on partial chunks
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Standard non-streaming chat
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: newMessages }),
+        });
 
-      setMessages([...newMessages, { role: 'assistant', content: data.content }]);
+        if (!res.ok) throw new Error('Network error');
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+      }
     } catch (err) {
       console.error(err);
-      setMessages([...newMessages, { role: 'assistant', content: 'Oops, something went wrong. Please try again later.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Oops, something went wrong. Please try again later.' }]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [input, isLoading, messages]);
+
+  useEffect(() => {
+    if (chatTrigger) {
+      setIsOpen(true);
+      handleSend(chatTrigger);
+      setChatTrigger(null);
+    }
+  }, [chatTrigger, handleSend, setChatTrigger]);
 
   return (
     <>
@@ -111,7 +174,7 @@ export default function ChatWidget() {
               placeholder="Ask about your portfolio..."
               className={styles.chatInput}
             />
-            <button className={styles.sendBtn} onClick={handleSend} disabled={isLoading || !input.trim()}>
+            <button className={styles.sendBtn} onClick={() => handleSend()} disabled={isLoading || !input.trim()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
           </div>

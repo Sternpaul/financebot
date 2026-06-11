@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import AlertsManager from '@/components/AlertsManager';
 import { getExchangeRate } from '@/app/portfolio/actions';
+import ExplainButton from '@/components/ExplainButton';
 
 export default async function TickerDashboard({ params }: { params: Promise<{ ticker: string }> }) {
   const resolvedParams = await params;
@@ -129,7 +130,10 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
                </span>
             )}
           </div>
-          {quote?.longName && <h2 style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 'normal' }}>{quote.longName}</h2>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            {quote?.longName && <h2 style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 'normal' }}>{quote.longName}</h2>}
+            <ExplainButton ticker={ticker} />
+          </div>
         </div>
         {quote && (
           <div style={{ textAlign: 'right' }}>
