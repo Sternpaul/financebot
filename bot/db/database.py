@@ -42,11 +42,7 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True, # Prevent dropped connection errors from ELB
-    connect_args={
-        "statement_cache_size": 0,
-        "prepared_statement_cache_size": 0,
-        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__"
-    },
+    prepared_statement_name_func=lambda: f"__asyncpg_{uuid.uuid4()}__"
 )
 
 # Create an async session factory
