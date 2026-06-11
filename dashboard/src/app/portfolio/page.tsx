@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import { getHoldings, getExchangeRate } from '@/app/portfolio/actions';
 import PortfolioCharts from '@/components/PortfolioCharts';
 import PortfolioManager from '@/components/PortfolioManager';
@@ -123,7 +124,27 @@ export default async function Portfolio() {
 
   return (
     <main className="page-container animate-fade-in">
-      <h1 className="header-title">My <span className="text-gradient">Portfolio</span></h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1 className="header-title" style={{ margin: 0 }}>My <span className="text-gradient">Portfolio</span></h1>
+        <Link href="/portfolio/risk" style={{
+          padding: '8px 16px',
+          background: 'var(--bg-secondary)',
+          color: 'var(--text-primary)',
+          textDecoration: 'none',
+          borderRadius: '20px',
+          border: '1px solid var(--glass-border)',
+          fontSize: '0.9rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: '500'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Risk Cockpit →
+        </Link>
+      </div>
       
       {!holdings || holdings.length === 0 ? (
         <div className="glass-panel">

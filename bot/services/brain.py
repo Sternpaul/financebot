@@ -246,6 +246,30 @@ async def generate_morning_report():
                 break
             macro_knowledge.append(k.content)
             current_chars += len(k.content)
+            
+        # Fetch Upcoming Catalysts (Earnings)
+        import yfinance as yf
+        async def fetch_catalyst(t):
+            try:
+                def get_cal():
+                    return yf.Ticker(t).calendar
+                cal = await asyncio.to_thread(get_cal)
+                if cal and 'Earnings Date' in cal:
+                    dates = cal['Earnings Date']
+                    if len(dates) > 0:
+                        next_date = dates[0]
+                        if hasattr(next_date, 'date'):
+                            next_date = next_date.date()
+                        days_away = (next_date - datetime.now().date()).days
+                        if 0 <= days_away <= 14:
+                            return f"- {t}: Earnings on {next_date.strftime('%Y-%m-%d')} ({days_away} days away)"
+            except Exception:
+                pass
+            return None
+
+        catalyst_results = await asyncio.gather(*[fetch_catalyst(t) for t in active_tickers])
+        valid_catalysts = [c for c in catalyst_results if c]
+        catalysts_str = "\n".join(valid_catalysts) if valid_catalysts else "No upcoming earnings in the next 14 days."
         
         # Build prompt
         portfolio_str = ", ".join(active_tickers)
@@ -259,6 +283,9 @@ Macro Events / Market Sentiment:
 
 Specific Ticker Updates:
 {knowledge_str if knowledge_str else 'No specific updates for portfolio holdings.'}
+
+Upcoming Catalysts:
+{catalysts_str}
 
 Format the response as a beautiful Markdown report with:
 1. Market Overview (What to expect today)
