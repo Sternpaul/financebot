@@ -198,7 +198,7 @@ async def generate_morning_report():
     
     async with AsyncSessionLocal() as session:
         # Get active portfolio tickers
-        stmt = select(Transaction.ticker, Transaction.shares, Transaction.price_per_share, Transaction.transaction_type).where(Transaction.ticker.is_not(None)).order_by(Transaction.timestamp.asc())
+        stmt = select(Transaction.ticker, Transaction.shares, Transaction.price_per_share, Transaction.type).where(Transaction.ticker.is_not(None)).order_by(Transaction.date.asc())
         result = await session.execute(stmt)
         transactions = result.all()
         
