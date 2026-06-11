@@ -22,39 +22,20 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 
 ---
 
-## 📈 Current Status of Implementation
+## ✨ Core Features
 
-**Phase 1 & 2: Architecture & Database (✅ Completed)**
-- [x] Docker Compose multi-service setup (`bot`, `worker`, `redis`, `rsshub`).
-- [x] Async SQLAlchemy database connection and complete schema migrations.
-
-**Phase 3: Web Dashboard (✅ Completed)**
-- [x] **Settings Tab**: Dynamic Sources Manager for configuring RSS/News scraping sources.
-- [x] **Feed Tab**: Complete 3-column Yahoo Finance-style News Engine separating Traditional News, Substack Reports, and Telegram Alpha streams.
-- [x] **Watchlist Tab**: Global Yahoo Finance search engine & dedicated detailed Ticker Dashboards.
-- [x] **Portfolio Tab**: Interactive asset allocation charts, P&L calculators, and mutation forms.
-
-**Phase 4: Core Background Services (✅ Completed)**
-- [x] **News/Fintwit Ingestion**: Background workers reliably poll configured Content Sources and inject intelligence into `news_articles`.
-- [x] **Alerts Engine**: Complete technical alerts (Price Targets, % Drops) with customizable thresholds per ticker.
-- [x] **Messaging Interface**: Live Discord integration pushing real-time alerts to the user's phone via Discord embeds with interactive [Acknowledge] buttons.
-
-**Phase 6: Advanced Portfolio Analytics & Ledger (✅ Completed)**
-- [x] **Dynamic Ledger Construction**: The portfolio state, P&L, and historical equity curves are now calculated dynamically by replaying your transaction history from the `transactions` table.
-- [x] **Market State Integration**: Real-time Yahoo Finance indicators visually highlight whether the market for a specific asset is currently Open, Closed, Pre-Market, or Post-Market.
-- [x] **Continuous Charting**: Implemented intelligent "reset" logic that retains previous daily charts during closed hours and weekends, ensuring the dashboard never shows an empty state.
-- [x] **Massive Interoperability**: Industry-standard CSV Import and Export capabilities via `papaparse` allow you to easily ingest backups from platforms like Yahoo Finance or export your entire ledger for external tax analysis.
+- **Modern Web Dashboard**: A sleek, Vercel/Linear style Next.js 15 interface featuring dynamic portfolios, interactive asset allocation charts, and a highly responsive design.
+- **Robust Database Foundation**: Asynchronous SQLAlchemy and Postgres with `pgvector` for storing portfolio holdings, embeddings, user settings, and watchlists.
+- **Dynamic Ledger & Market Integration**: Portfolio states, P&L, and equity curves are calculated dynamically from transaction history. Real-time Yahoo Finance indicators natively display open/closed market states with intelligent charting logic.
+- **Automated Intelligence & Ingestion**: Background workers reliably poll traditional news, Substack reports, and Telegram alpha streams. A sophisticated "AI Brain" compresses articles into 30-minute Short-Term Memories, and recursively compacts them into dense Long-Term "Master Summaries" every 24 hours.
+- **Real-Time Alert Engine**: Fully customizable technical alerts (price targets, volume shifts, % drops) that push rich, interactive notifications directly to your phone via Discord embeds.
+- **Massive Interoperability**: Industry-standard CSV Import and Export capabilities via `papaparse` for seamless transitions between platforms like Yahoo Finance and external tax tools.
 
 ---
 
-## 🚧 What Needs Work (Next Steps & Roadmap)
+## 🚧 Roadmap & What Needs Work
 
-**Phase 5: The Recursive AI Brain & Ingestion Engine (✅ Completed)**
-- **Real-Time Telegram Streaming**: Telethon WebSocket listeners ingest alpha channels instantly, backed by an hourly fallback polling engine to ensure perfect sync.
-- **Short-Term Memory (30-Min Cycles)**: New articles and alerts are clustered by ticker and compressed via the `ScaleDown` API. The AI (using OpenRouter with a robust 4-model fallback rotation) extracts pure factual catalysts, sentiment shifts, and risks, storing them in a dense plain-text format.
-- **Long-Term Memory Compaction**: Every 24 hours, the AI Brain gathers all 30-minute memories for a ticker and recursively compresses them into a single, highly-dense "Master Summary". Old memories are then archived, ensuring the active "Brain" size stays strictly small and token-efficient while retaining all historical facts forever.
-
-**Phase 7: Execution & Automation Hooks (Optional but Powerful)**
+**Execution & Automation Hooks**
 - **Automated Trading**: Allow technical alerts to trigger outbound webhooks (e.g., automatically firing a limit buy order via Binance or Hyperliquid when an asset drops 5% in volume).
 - **AI-Driven Execution**: Make the entire platform "AI Ready". The end-goal is to allow the user to simply send a natural language message to the bot (e.g., *"I bought 1 TSLA yesterday at 5PM"*), and the AI will parse the entity, execution time, and automatically inject the transaction into your portfolio ledger.
 
