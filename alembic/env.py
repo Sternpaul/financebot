@@ -90,7 +90,7 @@ async def run_async_migrations() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
         connect_args={
-            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__"
+            "statement_cache_size": 0
         },
     )
 
