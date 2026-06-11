@@ -98,6 +98,13 @@ async def main():
     # Start Telegram Telethon client for real-time WebSockets
     asyncio.create_task(start_telegram_streaming())
     
+    # Run an immediate backfill after a short delay to let the streaming client connect first
+    async def delayed_backfill():
+        await asyncio.sleep(10)  # Give the streaming client time to connect
+        logger.info("Running startup Telegram backfill...")
+        await run_telegram_backfill_check(redis)
+    asyncio.create_task(delayed_backfill())
+    
     # Morning report
     # scheduler.add_job(send_morning_report, 'cron', day_of_week='mon-fri', hour='07', minute='30')
 
