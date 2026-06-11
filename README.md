@@ -78,11 +78,22 @@ Before running any migrations, you MUST enable the `pgvector` extension in your 
 ```bash
 docker compose run --rm worker alembic upgrade head
 ```
-5. Run the stack:
+
+5. **Fix Supabase PostgREST Permissions (CRITICAL):**
+Because Alembic creates the tables directly in PostgreSQL as the admin user, the Supabase Data API (PostgREST) won't automatically have read access, resulting in a `permission denied for table` error on the frontend.
+You **MUST** run the following SQL snippet in your Supabase Dashboard's SQL Editor to grant the web roles access:
+```sql
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated;
+```
+
+6. Run the stack:
 ```bash
 docker compose up --build -d
 ```
-6. **Authenticate Telegram (One-Time Setup):**
+7. **Authenticate Telegram (One-Time Setup):**
 To achieve true real-time ingestion for Telegram and to read private channels, you must authenticate the bot with your Telegram account.
 Get your `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) and add them to your `.env` file. Then, run the interactive authentication script inside the docker container:
 ```bash
@@ -90,7 +101,7 @@ docker compose run --build --rm worker python login_telegram.py
 ```
 *(Enter your phone number and login code. This securely saves a `bot.session` file into the mounted `sessions/` directory, keeping the bot permanently authenticated.)*
 
-7. Restart the stack to apply the new session:
+8. Restart the stack to apply the new session:
 ```bash
 docker compose restart worker
 ```
