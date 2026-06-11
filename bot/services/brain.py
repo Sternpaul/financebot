@@ -64,56 +64,69 @@ async def run_brain_synthesis():
                     
                 return bundled
 
-            # Synthesize Ticker-Specific Knowledge
+            # Build JSON Batching Prompt
+            bundled_sections = []
+            article_mappings = {} # Keep track of article IDs for each ticker
+            
             for ticker, articles in ticker_news.items():
-                if len(articles) == 0:
-                    continue
+                if len(articles) > 0:
+                    text = bundle_articles(articles)
+                    bundled_sections.append(f"[TICKER: {ticker}]\n{text}")
+                    article_mappings[ticker] = [a.id for a in articles]
                     
-                combined_text = bundle_articles(articles)
-                prompt_instruction = f"Extract key insights, sentiment shifts, risks, and catalysts for ticker ${ticker} from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
+            if macro_news:
+                text = bundle_articles(macro_news[:50])
+                bundled_sections.append(f"[MACRO]\n{text}")
+                article_mappings["MACRO"] = [a.id for a in macro_news[:50]]
+                
+            if bundled_sections:
+                combined_text = "\n\n---\n\n".join(bundled_sections)
+                prompt_instruction = "Extract key insights, sentiment shifts, risks, and catalysts for each ticker mentioned below, and for the macro market. Focus heavily on telegram alerts. Output EXACTLY a valid JSON dictionary mapping the ticker symbol (or 'MACRO') to a short, punchy summary plain text string. Do NOT output any conversational filler. Example: {\"AAPL\": \"summary...\", \"MACRO\": \"summary...\"}"
                 
                 # Compress with ScaleDown
                 compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
+                system_prompt = "You are a sharp financial analyst AI. Return ONLY a valid JSON dictionary mapping tickers to summaries. Absolutely no conversational filler or markdown other than the JSON block itself."
                 
-                response = await generate_completion(compressed_prompt, "You are a sharp financial analyst AI. Extract concise factual knowledge. DO NOT use markdown formatting (no bold, italics, or bullet points). Output plain text ONLY.")
+                response = await generate_completion(compressed_prompt, system_prompt)
                 
                 if response and response.get('content'):
-                    knowledge = MarketKnowledge(
-                        ticker=ticker,
-                        knowledge_type='catalyst_sentiment',
-                        content=response['content'],
-                        source_article_ids=[a.id for a in articles]
-                    )
-                    session.add(knowledge)
-                    for a in articles:
-                        a.is_synthesized = True
-                    await session.commit()
-                    logger.info(f"Synthesized knowledge for {ticker}")
-                    synthesized_count += 1
-                    total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
+                    content = response['content'].strip()
+                    import re
+                    json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
+                    if json_match:
+                        content = json_match.group(1)
                     
-            # Synthesize Macro Knowledge
-            if macro_news:
-                combined_text = bundle_articles(macro_news[:50]) # Limit to 50
-                prompt_instruction = f"Extract key macroeconomic insights and market-wide catalysts from the following recent news. Focus heavily on telegram alerts. Return a short, punchy summary."
-                compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
-                
-                response = await generate_completion(compressed_prompt, "You are a sharp macro-economic analyst AI. Extract concise factual knowledge. DO NOT use markdown formatting (no bold, italics, or bullet points). Output plain text ONLY.")
-                
-                if response and response.get('content'):
-                    knowledge = MarketKnowledge(
-                        ticker=None,
-                        knowledge_type='macro',
-                        content=response['content'],
-                        source_article_ids=[a.id for a in macro_news[:50]]
-                    )
-                    session.add(knowledge)
-                    for a in macro_news[:50]:
-                        a.is_synthesized = True
-                    await session.commit()
-                    logger.info("Synthesized macro knowledge")
-                    synthesized_count += 1
-                    total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
+                    try:
+                        parsed_json = json.loads(content)
+                        
+                        for key, summary in parsed_json.items():
+                            if not isinstance(summary, str) or not summary.strip():
+                                continue
+                                
+                            is_macro = (key.upper() == "MACRO")
+                            ticker = None if is_macro else key
+                            article_ids = article_mappings.get(key, [])
+                            
+                            knowledge = MarketKnowledge(
+                                ticker=ticker,
+                                knowledge_type='macro' if is_macro else 'catalyst_sentiment',
+                                content=summary.strip(),
+                                source_article_ids=article_ids
+                            )
+                            session.add(knowledge)
+                            synthesized_count += 1
+                            
+                        # Mark corresponding articles as synthesized
+                        for a in recent_news:
+                            if a.id in [aid for ids in article_mappings.values() for aid in ids]:
+                                a.is_synthesized = True
+                                
+                        await session.commit()
+                        total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
+                        logger.info(f"Batched synthesis complete. Parsed keys: {list(parsed_json.keys())}")
+                        
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse LLM JSON output in brain synthesis: {e}. Output was: {content}")
 
             # Brain Size Tracking
             res = await session.execute(select(func.sum(func.length(MarketKnowledge.content))).where(MarketKnowledge.is_archived == False))
@@ -148,6 +161,9 @@ async def run_daily_compaction():
         
         total_tokens_used = 0
         
+        bundled_sections = []
+        knowledge_mappings = {} # Dict of ticker -> list of MarketKnowledge objects
+        
         for ticker in tickers:
             stmt = select(MarketKnowledge).where(MarketKnowledge.ticker == ticker, MarketKnowledge.is_archived == False)
             res = await session.execute(stmt)
@@ -156,31 +172,59 @@ async def run_daily_compaction():
             if len(knowledge_items) <= 1:
                 continue # No need to compact if it's already a single master summary
                 
-            combined_text = "\n\n".join([f"- {k.content}" for k in knowledge_items])
-            prompt_instruction = f"You are compressing the AI Brain's memory for {ticker if ticker else 'Macro Market'}. Create a dense, highly informative Master Summary of the following accumulated facts. Discard noise, retain critical insights, trends, and catalysts."
+            combined_text = "\n".join([f"- {k.content}" for k in knowledge_items])
+            key = ticker if ticker else "MACRO"
+            bundled_sections.append(f"[{'TICKER: ' + ticker if ticker else 'MACRO'}]\n{combined_text}")
+            knowledge_mappings[key] = knowledge_items
+            
+        if bundled_sections:
+            combined_text = "\n\n---\n\n".join(bundled_sections)
+            prompt_instruction = "You are compressing the AI Brain's memory for multiple tickers and the macro market. Create a dense, highly informative Master Summary of the facts for EACH section provided below. Discard noise, retain critical insights, trends, and catalysts. Output EXACTLY a valid JSON dictionary mapping the ticker symbol (or 'MACRO') to its Master Summary string. Do NOT output any conversational filler. Example: {\"AAPL\": \"summary...\", \"MACRO\": \"summary...\"}"
             
             compressed_prompt = await compress_with_scaledown(combined_text, prompt_instruction)
-            response = await generate_completion(compressed_prompt, "You are an elite hedge fund knowledge manager. Create a dense Master Summary. DO NOT use markdown formatting (no bold, italics, or bullet points). Output plain text ONLY.")
+            system_prompt = "You are an elite hedge fund knowledge manager. Return ONLY a valid JSON dictionary. Absolutely no conversational filler or markdown other than the JSON block itself."
+            
+            response = await generate_completion(compressed_prompt, system_prompt)
             
             if response and response.get('content'):
-                # Archive the old items
-                for k in knowledge_items:
-                    k.is_archived = True
+                content = response['content'].strip()
+                import re
+                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
+                if json_match:
+                    content = json_match.group(1)
+                
+                try:
+                    import json
+                    parsed_json = json.loads(content)
                     
-                # Create the new Master Summary
-                master = MarketKnowledge(
-                    ticker=ticker,
-                    knowledge_type='master_summary',
-                    content=response['content'],
-                    source_article_ids=[],
-                    is_archived=False
-                )
-                session.add(master)
-                await session.commit()
-                
-                total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
-                logger.info(f"Compacted knowledge for {ticker if ticker else 'Macro'}")
-                
+                    for key, summary in parsed_json.items():
+                        if not isinstance(summary, str) or not summary.strip():
+                            continue
+                            
+                        is_macro = (key.upper() == "MACRO")
+                        ticker = None if is_macro else key
+                        
+                        if key in knowledge_mappings:
+                            old_items = knowledge_mappings[key]
+                            for k in old_items:
+                                k.is_archived = True
+                                
+                            master = MarketKnowledge(
+                                ticker=ticker,
+                                knowledge_type='master_summary',
+                                content=summary.strip(),
+                                source_article_ids=[],
+                                is_archived=False
+                            )
+                            session.add(master)
+                            
+                    await session.commit()
+                    total_tokens_used += response.get('usage', {}).get('total_tokens', 0)
+                    logger.info(f"Batched compaction complete. Parsed keys: {list(parsed_json.keys())}")
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse LLM JSON output in daily compaction: {e}. Output was: {content}")
+        
         # Brain Size Tracking
         res = await session.execute(select(func.sum(func.length(MarketKnowledge.content))).where(MarketKnowledge.is_archived == False))
         total_chars = res.scalar() or 0
