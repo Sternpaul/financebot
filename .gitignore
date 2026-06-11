@@ -33,3 +33,6 @@ logs/
 # Type checking
 .mypy_cache/
 .ruff_cache/
+
+# Sensitive
+remote_auth.txt
