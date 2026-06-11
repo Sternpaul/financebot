@@ -15,11 +15,7 @@ if db_url.startswith("postgresql://"):
 import socket
 from urllib.parse import urlparse, urlunparse
 
-# Ensure asyncpg doesn't use prepared statements so it works with Supabase Transaction poolers on port 6543
-if "?" not in db_url:
-    db_url += "?statement_cache_size=0"
-else:
-    db_url += "&statement_cache_size=0"
+# Remove URL-based statement cache to prevent asyncpg string parsing TypeError
 
 # Force IPv4 resolution to prevent Docker/asyncio from randomly attempting IPv6 and crashing with Errno 101
 parsed = urlparse(db_url)
@@ -42,6 +38,11 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True, # Prevent dropped connection errors from ELB
+    connect_args={
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__"
+    },
 )
 
 # Create an async session factory
