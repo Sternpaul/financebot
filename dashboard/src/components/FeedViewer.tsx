@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 import styles from '../app/page.module.css';
 
 function getRelativeTime(dateString: string) {
@@ -99,7 +100,7 @@ export default function FeedViewer({ posts }: { posts: any[] }) {
                 <a href={post.url} target="_blank" rel="noopener noreferrer" style={{textDecoration: 'none'}}>
                   <div className={styles.title} style={{fontSize: '1.25rem'}}>{post.title}</div>
                 </a>
-                <div className={styles.content} dangerouslySetInnerHTML={{__html: post.content}} />
+                <div className={styles.content} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(post.content)}} />
               </div>
             ))}
           </div>
@@ -121,7 +122,7 @@ export default function FeedViewer({ posts }: { posts: any[] }) {
                         {getRelativeTime(post.posted_at)}
                       </span>
                     </div>
-                    <div className={styles.telegramContent} dangerouslySetInnerHTML={{__html: post.content}} />
+                    <div className={styles.telegramContent} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(post.content)}} />
                   </div>
                 ))}
               </div>
@@ -161,7 +162,7 @@ export default function FeedViewer({ posts }: { posts: any[] }) {
                     cursor: showExpandToggle ? 'pointer' : 'default'
                   }}
                   onClick={() => showExpandToggle && setExpandedId(isExpanded ? null : post.id.toString())}
-                  dangerouslySetInnerHTML={{__html: post.content}} 
+                  dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(post.content)}}
                 />
                 
                 {showExpandToggle && !isExpanded && (

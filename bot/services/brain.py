@@ -85,6 +85,8 @@ async def run_brain_synthesis():
                         source_article_ids=[a.id for a in articles]
                     )
                     session.add(knowledge)
+                    for a in articles:
+                        a.is_synthesized = True
                     await session.commit()
                     logger.info(f"Synthesized knowledge for {ticker}")
                     synthesized_count += 1
@@ -106,6 +108,8 @@ async def run_brain_synthesis():
                         source_article_ids=[a.id for a in macro_news[:50]]
                     )
                     session.add(knowledge)
+                    for a in macro_news[:50]:
+                        a.is_synthesized = True
                     await session.commit()
                     logger.info("Synthesized macro knowledge")
                     synthesized_count += 1
@@ -122,10 +126,6 @@ async def run_brain_synthesis():
             else:
                 await log_ingestion('ai_brain', 'synthesis', 'ERROR', f'Failed to synthesize any knowledge. Active Brain Size: {est_tokens} tokens.')
 
-            # Mark as synthesized to prevent duplicates on restart
-            for article in recent_news:
-                article.is_synthesized = True
-            await session.commit()
 
         logger.info("Brain Synthesis cycle completed.")
     except Exception as e:
@@ -198,18 +198,26 @@ async def generate_morning_report():
     
     async with AsyncSessionLocal() as session:
         # Get active portfolio tickers
-        stmt = select(Transaction.ticker, Transaction.shares, Transaction.price_per_share).where(Transaction.ticker.is_not(None))
+        stmt = select(Transaction.ticker, Transaction.shares, Transaction.price_per_share, Transaction.transaction_type).where(Transaction.ticker.is_not(None)).order_by(Transaction.timestamp.asc())
         result = await session.execute(stmt)
         transactions = result.all()
         
         portfolio = {}
-        for ticker, shares, price in transactions:
-            if ticker not in portfolio:
-                portfolio[ticker] = {'shares': 0, 'cost_basis': 0}
-            portfolio[ticker]['shares'] += shares
-            portfolio[ticker]['cost_basis'] += shares * price
+        for ticker, shares, price, t_type in transactions:
+            if t_type == 'BUY':
+                if ticker not in portfolio:
+                    portfolio[ticker] = {'shares': 0, 'cost_basis': 0}
+                portfolio[ticker]['shares'] += shares or 0
+                portfolio[ticker]['cost_basis'] += (shares or 0) * (price or 0)
+            elif t_type == 'SELL':
+                if ticker in portfolio:
+                    avg_cost = portfolio[ticker]['cost_basis'] / portfolio[ticker]['shares'] if portfolio[ticker]['shares'] > 0 else 0
+                    portfolio[ticker]['shares'] -= shares or 0
+                    portfolio[ticker]['cost_basis'] -= (shares or 0) * avg_cost
+                    if portfolio[ticker]['shares'] <= 0:
+                        del portfolio[ticker]
             
-        active_tickers = [t for t, data in portfolio.items() if data['shares'] > 0]
+        active_tickers = list(portfolio.keys())
         
         if not active_tickers:
             logger.info("No active portfolio. Skipping morning report.")

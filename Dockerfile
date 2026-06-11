@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY bot/ bot/
 COPY alembic.ini .
 COPY alembic/ alembic/
-COPY scratch/ scratch/
+
 COPY login_telegram.py .
 
 # Create sessions dir and set ownership so named volume inherits it

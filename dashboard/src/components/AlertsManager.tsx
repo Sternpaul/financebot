@@ -3,6 +3,12 @@
 import { useState, useTransition } from "react";
 import { updateCustomAlerts } from "@/app/watchlist/actions";
 
+const PresetButton = ({ label, onClick }: { label: string, onClick: () => void }) => (
+  <button type="button" onClick={onClick} style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px' }}>
+    {label}
+  </button>
+);
+
 export default function AlertsManager({ ticker, initialAlerts, currentPrice }: { ticker: string, initialAlerts: any, currentPrice: number }) {
   const alerts = initialAlerts || {};
   const [pctChange, setPctChange] = useState(alerts.pct_change !== undefined ? alerts.pct_change : "");
@@ -38,11 +44,7 @@ export default function AlertsManager({ ticker, initialAlerts, currentPrice }: {
     });
   };
 
-  const PresetButton = ({ label, onClick }: { label: string, onClick: () => void }) => (
-    <button type="button" onClick={onClick} style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px' }}>
-      {label}
-    </button>
-  );
+
 
   return (
     <div className="glass-panel">

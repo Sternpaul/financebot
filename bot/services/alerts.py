@@ -16,6 +16,21 @@ import os
 # API Provider Rotation state
 current_provider_idx = 0
 
+async def fetch_10d_volume(session, symbol):
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=10d"
+        async with session.get(url, headers=headers, timeout=10) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                volumes = data["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
+                volumes = [v for v in volumes if v is not None]
+                if volumes:
+                    return symbol, sum(volumes) / len(volumes)
+    except Exception as e:
+        logger.error(f"Failed to fetch 10d volume for {symbol}: {e}")
+    return symbol, 1
+
 async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
     global current_provider_idx
     if not symbols:
@@ -41,16 +56,14 @@ async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
                                     "symbol": ticker_data.get("ticker"),
                                     "regularMarketPrice": ticker_data.get("day", {}).get("c", 0),
                                     "regularMarketChangePercent": ticker_data.get("todaysChangePerc", 0),
-                                    "regularMarketVolume": ticker_data.get("day", {}).get("v", 0),
-                                    "averageDailyVolume10Day": ticker_data.get("day", {}).get("v", 0) # approximation
+                                    "regularMarketVolume": ticker_data.get("day", {}).get("v", 0)
                                 })
-                            return quotes
                         else:
                             logger.error(f"Polygon API Error: {resp.status}. Falling back.")
                 except Exception as e:
                     logger.error(f"Polygon Fetch Error: {e}")
-            # Fallthrough if Polygon fails or no key
-            provider = "finnhub"
+            if not quotes:
+                provider = "finnhub"
             
         if provider == "finnhub":
             api_key = os.getenv("FINNHUB_API_KEY", "")
@@ -66,23 +79,19 @@ async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
                                         "symbol": symbol,
                                         "regularMarketPrice": data.get("c", 0),
                                         "regularMarketChangePercent": data.get("dp", 0),
-                                        "regularMarketVolume": 0, # Finnhub quote doesn't provide real-time volume in this endpoint
-                                        "averageDailyVolume10Day": 1
+                                        "regularMarketVolume": 0
                                     })
                             else:
                                 logger.error(f"Finnhub API Error: {resp.status} for {symbol}. Falling back.")
                                 provider = "yahoo"
                                 break
-                    if provider == "finnhub": # Success
-                        return quotes
                 except Exception as e:
                     logger.error(f"Finnhub Fetch Error: {e}")
-            # Fallthrough if Finnhub fails
-            provider = "yahoo"
+            if not quotes:
+                provider = "yahoo"
             
         if provider == "yahoo":
             try:
-                # We use direct API instead of yfinance because of rate limit / User-Agent blocks
                 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
                 for s in symbols:
                     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{s}?interval=1d&range=2d"
@@ -101,18 +110,22 @@ async def fetch_quotes_with_rotation(symbols: List[str]) -> list:
                                     "symbol": s,
                                     "regularMarketPrice": last_price,
                                     "regularMarketChangePercent": change_pct,
-                                    "regularMarketVolume": meta.get("regularMarketVolume", 0),
-                                    "averageDailyVolume10Day": meta.get("regularMarketVolume", 1) # Fallback to current vol
+                                    "regularMarketVolume": meta.get("regularMarketVolume", 0)
                                 })
                             except (KeyError, IndexError, TypeError):
                                 logger.error(f"Failed to parse Yahoo data for {s}")
                         else:
                             logger.error(f"Yahoo API Error: {resp.status} for {s}")
-                
-                if quotes:
-                    return quotes
             except Exception as e:
                 logger.error(f"Failed to fetch quotes from Yahoo: {e}")
+
+        # Post-process: Fetch true 10d average volume asynchronously in parallel
+        if quotes:
+            tasks = [fetch_10d_volume(session, q["symbol"]) for q in quotes]
+            results = await asyncio.gather(*tasks)
+            vol_map = dict(results)
+            for q in quotes:
+                q["averageDailyVolume10Day"] = vol_map.get(q["symbol"], 1)
                 
     return quotes
 
