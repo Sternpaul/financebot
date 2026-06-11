@@ -95,13 +95,18 @@ docker compose up --build -d
 ```
 7. **Authenticate Telegram (One-Time Setup):**
 To achieve true real-time ingestion for Telegram and to read private channels, you must authenticate the bot with your Telegram account.
-Get your `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) and add them to your `.env` file. Then, run the interactive authentication script inside the docker container:
+Get your `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) and add them to your `.env` file. Then, run the interactive authentication script **locally on your machine** (not inside Docker) to easily scan the QR code:
 ```bash
-docker compose run --build --rm worker python login_telegram.py
-```
-*(Enter your phone number and login code. This securely saves a `bot.session` file into the mounted `sessions/` directory, keeping the bot permanently authenticated.)*
+# Install local dependencies first
+pip install telethon python-dotenv qrcode
 
-8. Restart the stack to apply the new session:
+# Run the authentication script
+python login_telegram.py
+```
+*(Scan the QR code with your Telegram app under Settings -> Devices -> Link Desktop Device. If you have Two-Step Verification enabled, it will prompt you for your password. This securely saves a portable `bot.session` file into the `sessions/` directory.)*
+
+8. Copy the generated `sessions/bot.session` to your server and place it in the server's `sessions/` directory (or inject it directly into the Docker volume if using named volumes).
+9. Restart the stack to apply the new session:
 ```bash
-docker compose restart worker
+docker compose restart worker bot
 ```
