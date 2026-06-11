@@ -11,7 +11,8 @@ interface Message {
 }
 
 export default function ChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { chatTrigger, setChatTrigger, isChatOpen, setIsChatOpen } = useAppContext();
+  
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: "Hi there! I'm FinanceBot. I've been reading your feeds and tracking your portfolio—how can I help you today?" }
   ]);
@@ -19,15 +20,13 @@ export default function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { chatTrigger, setChatTrigger } = useAppContext();
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isOpen]);
+  }, [messages, isChatOpen]);
 
   const handleSend = useCallback(async (forcedInput?: string | React.MouseEvent | React.KeyboardEvent) => {
     // If it's an event object, ignore it
@@ -114,77 +113,72 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (chatTrigger) {
-      setIsOpen(true);
+      setIsChatOpen(true);
       handleSend(chatTrigger);
       setChatTrigger(null);
     }
-  }, [chatTrigger, handleSend, setChatTrigger]);
+  }, [chatTrigger, handleSend, setChatTrigger, setIsChatOpen]);
 
   return (
     <>
-      {/* Floating Action Button */}
-      {!isOpen && (
-        <button 
-          className={styles.fab} 
-          onClick={() => setIsOpen(true)}
-          title="Chat with FinanceBot"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </button>
+      {isChatOpen && (
+        <div className={styles.overlay} onClick={() => setIsChatOpen(false)}></div>
       )}
 
-      {/* Chat Window */}
-      {isOpen && (
-        <div className={styles.chatWindow}>
-          <div className={styles.chatHeader}>
-            <div className={styles.headerTitle}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '8px'}}>
-                <circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>
-              </svg>
-              FinanceBot AI
-            </div>
-            <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>×</button>
+      <div className={`${styles.sidebar} ${isChatOpen ? styles.open : ''}`}>
+        <div className={styles.chatHeader}>
+          <div className={styles.headerTitle}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '12px'}}>
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+            Finance AI
           </div>
-          
-          <div className={styles.messagesContainer}>
-            {messages.map((m, idx) => (
-              <div key={idx} className={`${styles.messageWrapper} ${m.role === 'user' ? styles.userWrapper : styles.aiWrapper}`}>
-                <div className={`${styles.messageBubble} ${m.role === 'user' ? styles.userBubble : styles.aiBubble}`}>
-                  {m.role === 'assistant' ? (
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
-                  ) : (
-                    m.content
-                  )}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className={`${styles.messageWrapper} ${styles.aiWrapper}`}>
-                <div className={`${styles.messageBubble} ${styles.aiBubble} ${styles.loadingBubble}`}>
-                  <span className={styles.dot}></span><span className={styles.dot}></span><span className={styles.dot}></span>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className={styles.inputArea}>
-            <input 
-              type="text" 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask about your portfolio..."
-              className={styles.chatInput}
-            />
-            <button className={styles.sendBtn} onClick={() => handleSend()} disabled={isLoading || !input.trim()}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-          </div>
+          <button className={styles.closeBtn} onClick={() => setIsChatOpen(false)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
-      )}
+        
+        <div className={styles.messagesContainer}>
+          {messages.map((m, idx) => (
+            <div key={idx} className={`${styles.messageWrapper} ${m.role === 'user' ? styles.userWrapper : styles.aiWrapper}`}>
+              <div className={`${styles.messageBubble} ${m.role === 'user' ? styles.userBubble : styles.aiBubble}`}>
+                {m.role === 'assistant' ? (
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                ) : (
+                  m.content
+                )}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className={`${styles.messageWrapper} ${styles.aiWrapper}`}>
+              <div className={`${styles.messageBubble} ${styles.aiBubble} ${styles.loadingBubble}`}>
+                <span className={styles.dot}></span><span className={styles.dot}></span><span className={styles.dot}></span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className={styles.inputArea}>
+          <input 
+            type="text" 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Ask AI anything..."
+            className={styles.chatInput}
+          />
+          <button className={styles.sendBtn} onClick={() => handleSend()} disabled={isLoading || !input.trim()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
     </>
   );
 }

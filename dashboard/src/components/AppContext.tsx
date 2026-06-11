@@ -13,6 +13,8 @@ interface AppContextType {
   toggleCurrency: () => void;
   chatTrigger: string | null;
   setChatTrigger: (msg: string | null) => void;
+  isChatOpen: boolean;
+  setIsChatOpen: (open: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -21,6 +23,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [currency, setCurrency] = useState<Currency>("USD");
   const [chatTrigger, setChatTrigger] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("app-theme") as Theme;
@@ -51,7 +54,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
 
   return (
-    <AppContext.Provider value={{ theme, toggleTheme, currency, toggleCurrency, chatTrigger, setChatTrigger }}>
+    <AppContext.Provider value={{ theme, toggleTheme, currency, toggleCurrency, chatTrigger, setChatTrigger, isChatOpen, setIsChatOpen }}>
       {children}
     </AppContext.Provider>
   );

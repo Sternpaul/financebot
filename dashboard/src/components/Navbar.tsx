@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Navbar.module.css';
@@ -6,7 +7,18 @@ import { useAppContext } from './AppContext';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { theme, toggleTheme, currency, toggleCurrency } = useAppContext();
+  const { theme, toggleTheme, currency, toggleCurrency, isChatOpen, setIsChatOpen } = useAppContext();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsChatOpen(!isChatOpen);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isChatOpen, setIsChatOpen]);
 
   if (pathname === '/login') {
     return null;
@@ -35,6 +47,18 @@ export default function Navbar() {
         </div>
 
         <div className={styles.controls}>
+          <button 
+            onClick={() => setIsChatOpen(true)} 
+            className={styles.askAiBtn}
+            aria-label="Ask AI"
+          >
+            <span style={{ marginRight: '6px' }}>✨</span>
+            <span className={styles.askAiText}>Ask AI</span>
+            <span className={styles.cmdK}>⌘K</span>
+          </button>
+
+          <div className={styles.divider}></div>
+
           <button onClick={toggleCurrency} className={styles.controlButton} aria-label="Toggle Currency">
             <span className={styles.currencyIcon}>{currency === 'USD' ? '$' : '€'}</span>
           </button>
