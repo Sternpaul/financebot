@@ -21,6 +21,9 @@ CORE_SOURCES = [
     {'platform': 'yfinance', 'handle': 'GeneralMarket', 'region': 'Global', 'display_name': 'General Market', 'is_core': True},
     {'platform': 'telegram', 'handle': 'whale_alert', 'region': None, 'display_name': 'Whale Alert', 'is_core': True},
     {'platform': 'telegram', 'handle': 'cointelegraph', 'region': None, 'display_name': 'Cointelegraph', 'is_core': True},
+    {'platform': 'telegram', 'handle': 'infinityhedge', 'region': None, 'display_name': 'Infinity Hedge', 'is_core': True},
+    {'platform': 'telegram', 'handle': 'RunnerXBT_Insights', 'region': None, 'display_name': 'RunnerXBT', 'is_core': True},
+    {'platform': 'telegram', 'handle': 'WalterBloomberg', 'region': None, 'display_name': 'Walter Bloomberg', 'is_core': True},
     {'platform': 'substack', 'handle': 'cryptohayes', 'region': None, 'display_name': 'Arthur Hayes', 'is_core': True},
     {'platform': 'substack', 'handle': 'thebearcave', 'region': None, 'display_name': 'The Bear Cave', 'is_core': True}
 ]
