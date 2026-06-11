@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import styles from './ChatWidget.module.css';
 import { useAppContext } from './AppContext';
 
@@ -12,7 +13,7 @@ interface Message {
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm your FinanceBot AI. Ask me about your portfolio or the latest market news." }
+    { role: 'assistant', content: "Hi there! I'm FinanceBot. I've been reading your feeds and tracking your portfolio—how can I help you today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -151,7 +152,11 @@ export default function ChatWidget() {
             {messages.map((m, idx) => (
               <div key={idx} className={`${styles.messageWrapper} ${m.role === 'user' ? styles.userWrapper : styles.aiWrapper}`}>
                 <div className={`${styles.messageBubble} ${m.role === 'user' ? styles.userBubble : styles.aiBubble}`}>
-                  {m.content}
+                  {m.role === 'assistant' ? (
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  ) : (
+                    m.content
+                  )}
                 </div>
               </div>
             ))}

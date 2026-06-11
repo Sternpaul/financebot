@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
+import ReactMarkdown from 'react-markdown';
 import styles from '../app/page.module.css';
 
 function getRelativeTime(dateString: string) {
@@ -37,24 +38,95 @@ export default function FeedViewer({ posts }: { posts: any[] }) {
   const reports = posts.filter(p => p.source_platform === 'substack').slice(0, 10);
   const telegram = posts.filter(p => p.source_platform === 'telegram').slice(0, 30);
 
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
+  const generateSummary = async () => {
+    if (isGeneratingSummary) return;
+    setIsGeneratingSummary(true);
+    setSummary('');
+
+    try {
+      const res = await fetch('/api/market-summary', { method: 'POST' });
+      if (!res.ok) throw new Error('Network error');
+      if (!res.body) throw new Error('No body stream');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      
+      let done = false;
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const data = JSON.parse(line.substring(6));
+                const text = data.choices?.[0]?.delta?.content || '';
+                if (text) {
+                  setSummary(prev => (prev || '') + text);
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setSummary('Failed to generate summary. Please try again later.');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   return (
     <div>
-      <div className={styles.viewToggle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <button 
-          className={`${styles.toggleBtn} ${layout === 'list' ? styles.active : ''}`}
-          onClick={() => setLayout('list')}
+          className={styles.summaryBtn}
+          onClick={generateSummary}
+          disabled={isGeneratingSummary}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-          List View
+          <span style={{ marginRight: '8px' }}>✨</span> 
+          {isGeneratingSummary ? 'Analyzing Market...' : "AI: What's moving the market?"}
         </button>
-        <button 
-          className={`${styles.toggleBtn} ${layout === 'grid' ? styles.active : ''}`}
-          onClick={() => setLayout('grid')}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          Grid View
-        </button>
+
+        <div className={styles.viewToggle} style={{ marginBottom: 0 }}>
+          <button 
+            className={`${styles.toggleBtn} ${layout === 'list' ? styles.active : ''}`}
+            onClick={() => setLayout('list')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            List View
+          </button>
+          <button 
+            className={`${styles.toggleBtn} ${layout === 'grid' ? styles.active : ''}`}
+            onClick={() => setLayout('grid')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Grid View
+          </button>
+        </div>
       </div>
+
+      {summary !== null && (
+        <div className={styles.summaryBanner}>
+          <div className={styles.summaryHeader}>
+            <span style={{ fontWeight: 'bold', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              Live Market Pulse
+            </span>
+            <button className={styles.closeSummaryBtn} onClick={() => setSummary(null)}>×</button>
+          </div>
+          <div className={styles.summaryContent}>
+            <ReactMarkdown>{summary}</ReactMarkdown>
+            {isGeneratingSummary && <span className={styles.cursorBlink}>_</span>}
+          </div>
+        </div>
+      )}
 
       {layout === 'grid' ? (
         <div className={styles.yahooGrid}>
