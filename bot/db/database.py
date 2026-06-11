@@ -12,11 +12,28 @@ import uuid
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+import socket
+from urllib.parse import urlparse, urlunparse
+
 # Ensure asyncpg doesn't use prepared statements so it works with Supabase Transaction poolers on port 6543
 if "?" not in db_url:
-    db_url += "?prepared_statement_cache_size=0"
+    db_url += "?statement_cache_size=0"
 else:
-    db_url += "&prepared_statement_cache_size=0"
+    db_url += "&statement_cache_size=0"
+
+# Force IPv4 resolution to prevent Docker/asyncio from randomly attempting IPv6 and crashing with Errno 101
+parsed = urlparse(db_url)
+if parsed.hostname:
+    try:
+        # Resolve specifically for AF_INET (IPv4)
+        addr_info = socket.getaddrinfo(parsed.hostname, parsed.port, family=socket.AF_INET)
+        if addr_info:
+            ipv4 = addr_info[0][4][0]
+            # Replace hostname with resolved IPv4 IP while keeping port/credentials intact
+            netloc = parsed.netloc.replace(parsed.hostname, ipv4)
+            db_url = urlunparse(parsed._replace(netloc=netloc))
+    except Exception as e:
+        print(f"Warning: Failed to resolve IPv4 for {parsed.hostname}: {e}")
 
 # Create the async engine
 engine = create_async_engine(
