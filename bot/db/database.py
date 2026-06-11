@@ -19,6 +19,10 @@ from urllib.parse import urlparse, urlunparse
 
 # Force IPv4 resolution to prevent Docker/asyncio from randomly attempting IPv6 and crashing with Errno 101
 parsed = urlparse(db_url)
+
+# STRIP any query parameters that might have been hardcoded in the .env string to prevent asyncpg crashes!
+parsed = parsed._replace(query="")
+db_url = urlunparse(parsed)
 if parsed.hostname:
     try:
         # Resolve specifically for AF_INET (IPv4)
