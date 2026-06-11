@@ -40,3 +40,5 @@ ssh
 ssh.pub
 gcp_ssh
 gcp_ssh.pub
+sessions/
+*.session
