@@ -66,6 +66,10 @@ async def main():
     from bot.services.alerts import run_technical_alerts_check
     from bot.backfill_telegram import run_telegram_backfill_check
     from bot.services.brain import run_brain_synthesis, generate_morning_report, run_daily_compaction
+    from bot.db.seed import seed_core_sources
+    
+    # Initialize core regional sources
+    await seed_core_sources()
     
     # Add jobs to scheduler
     # Technical Alerts Engine
