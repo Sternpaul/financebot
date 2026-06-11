@@ -42,3 +42,4 @@ gcp_ssh
 gcp_ssh.pub
 sessions/
 *.session
+backup/
