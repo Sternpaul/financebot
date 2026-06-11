@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, delete, update, func
 
 from bot.db.database import AsyncSessionLocal
-from bot.db.models import NewsArticle, MarketKnowledge, Transaction
+from bot.db.models import NewsArticle, MarketKnowledge, Transaction, Watchlist
 from bot.services.ai import compress_with_scaledown, generate_completion
 from bot.services.news import log_ingestion
 from bot.config import get_worker_config
@@ -225,16 +225,45 @@ async def generate_morning_report():
             
         # Get active knowledge for these tickers
         ticker_knowledge = []
+        tickers_with_news = set()
         for ticker in active_tickers:
             stmt = select(MarketKnowledge).where(MarketKnowledge.ticker == ticker, MarketKnowledge.is_archived == False).order_by(MarketKnowledge.created_at.desc())
             res = await session.execute(stmt)
             # Apply token cap: iteratively append until ~8000 tokens (32k chars)
             current_chars = 0
+            has_news = False
             for k in res.scalars().all():
                 if current_chars + len(k.content) > 15000: # 15k limit per ticker just in case
                     break
                 ticker_knowledge.append(f"[{ticker}]: {k.content}")
                 current_chars += len(k.content)
+                has_news = True
+            if has_news:
+                tickers_with_news.add(ticker)
+                
+        # Fetch Watchlist Tickers
+        stmt = select(Watchlist.ticker).where(Watchlist.alert_news == True)
+        res = await session.execute(stmt)
+        watchlist_tickers = res.scalars().all()
+        
+        watchlist_knowledge = []
+        watchlist_with_news = set()
+        for ticker in watchlist_tickers:
+            # Skip if already in portfolio
+            if ticker in active_tickers:
+                continue
+            stmt = select(MarketKnowledge).where(MarketKnowledge.ticker == ticker, MarketKnowledge.is_archived == False).order_by(MarketKnowledge.created_at.desc())
+            res = await session.execute(stmt)
+            current_chars = 0
+            has_news = False
+            for k in res.scalars().all():
+                if current_chars + len(k.content) > 15000:
+                    break
+                watchlist_knowledge.append(f"[{ticker}]: {k.content}")
+                current_chars += len(k.content)
+                has_news = True
+            if has_news:
+                watchlist_with_news.add(ticker)
                 
         # Get recent macro knowledge
         stmt = select(MarketKnowledge).where(MarketKnowledge.ticker.is_(None), MarketKnowledge.is_archived == False).order_by(MarketKnowledge.created_at.desc())
@@ -247,7 +276,7 @@ async def generate_morning_report():
             macro_knowledge.append(k.content)
             current_chars += len(k.content)
             
-        # Fetch Upcoming Catalysts (Earnings)
+        # Fetch Upcoming Catalysts (Earnings) for both portfolio and watchlist (only those with news)
         import yfinance as yf
         async def fetch_catalyst(t):
             try:
@@ -267,30 +296,37 @@ async def generate_morning_report():
                 pass
             return None
 
-        catalyst_results = await asyncio.gather(*[fetch_catalyst(t) for t in active_tickers])
+        combined_tickers_to_check = list(tickers_with_news.union(watchlist_with_news))
+        catalyst_results = await asyncio.gather(*[fetch_catalyst(t) for t in combined_tickers_to_check]) if combined_tickers_to_check else []
         valid_catalysts = [c for c in catalyst_results if c]
         catalysts_str = "\n".join(valid_catalysts) if valid_catalysts else "No upcoming earnings in the next 14 days."
         
         # Build prompt
-        portfolio_str = ", ".join(active_tickers)
+        portfolio_str = ", ".join(tickers_with_news) if tickers_with_news else "No portfolio stocks have recent news."
+        watchlist_str_list = ", ".join(watchlist_with_news) if watchlist_with_news else "No watchlist stocks have recent news."
+        
         knowledge_str = "\n".join(ticker_knowledge)
+        watchlist_knowledge_str = "\n".join(watchlist_knowledge)
         macro_str = "\n".join(macro_knowledge)
         
-        prompt = f"""Generate a Morning Briefing for a trader holding the following portfolio: {portfolio_str}.
+        prompt = f"""Generate a Morning Briefing.
 
 Macro Events / Market Sentiment:
 {macro_str if macro_str else 'No major macro news.'}
 
-Specific Ticker Updates:
+Specific Portfolio Ticker Updates (Holdings with news: {portfolio_str}):
 {knowledge_str if knowledge_str else 'No specific updates for portfolio holdings.'}
+
+Specific Watchlist Ticker Updates (Watchlist with news: {watchlist_str_list}):
+{watchlist_knowledge_str if watchlist_knowledge_str else 'No specific updates for watchlist.'}
 
 Upcoming Catalysts:
 {catalysts_str}
 
-Format the response as a beautiful Markdown report with:
-1. Market Overview (What to expect today)
-2. Portfolio Impact (How news affects their specific holdings)
-3. Actionable Advice (What to watch out for)
+Format the response as a beautiful Markdown report with the following exact structure:
+1. Market Overview (Strictly about the general market, macro economy, and overarching sentiment. Do not mention specific portfolio stocks here).
+2. Portfolio Updates (Only include this section if there is actual news provided for specific portfolio holdings. Skip entirely if no portfolio news).
+3. Watchlist Radar (Only include this section if there is actual news provided for watchlist items. Skip entirely if no watchlist news).
 """
         
         response = await generate_completion(prompt, "You are an elite hedge fund manager giving a morning briefing to your team.")
