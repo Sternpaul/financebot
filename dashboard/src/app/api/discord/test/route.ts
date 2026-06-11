@@ -2,20 +2,22 @@ import { NextResponse } from 'next/server';
 
 export async function POST() {
   try {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const botToken = process.env.DISCORD_TOKEN;
+    const channelId = process.env.DISCORD_CHANNEL_ID;
 
-    if (!webhookUrl) {
-      return NextResponse.json({ error: 'DISCORD_WEBHOOK_URL is not configured.' }, { status: 400 });
+    if (!botToken || !channelId) {
+      return NextResponse.json({ error: 'DISCORD_TOKEN or DISCORD_CHANNEL_ID is not configured.' }, { status: 400 });
     }
 
     const payload = {
       content: "✅ **FinanceBot Connection Test**\nYour Discord integration is fully functional and ready to receive alerts and morning briefings!"
     };
 
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bot ${botToken}`
       },
       body: JSON.stringify(payload)
     });
