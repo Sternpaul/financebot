@@ -122,15 +122,25 @@ async def consume_redis_streams():
                                 content = report_data.get("content", "")
                                 
                                 # Discord embeds have a 4096 character limit for descriptions
-                                if len(content) > 4000:
-                                    content = content[:4000] + "..."
+                                chunks = []
+                                current_chunk = ""
+                                for line in content.split('\n'):
+                                    if len(current_chunk) + len(line) + 1 > 4000:
+                                        chunks.append(current_chunk)
+                                        current_chunk = line + '\n'
+                                    else:
+                                        current_chunk += line + '\n'
+                                if current_chunk.strip():
+                                    chunks.append(current_chunk)
                                 
-                                embed = discord.Embed(
-                                    title=title,
-                                    description=content,
-                                    color=discord.Color.blue()
-                                )
-                                await channel.send(embed=embed)
+                                for i, chunk in enumerate(chunks):
+                                    embed_title = title if i == 0 else f"{title} (Part {i+1})"
+                                    embed = discord.Embed(
+                                        title=embed_title,
+                                        description=chunk,
+                                        color=discord.Color.blue()
+                                    )
+                                    await channel.send(embed=embed)
                             except Exception as e:
                                 logger.error(f"Error parsing report payload: {e}")
                         
