@@ -20,6 +20,12 @@ from urllib.parse import urlparse, urlunparse
 # Force IPv4 resolution to prevent Docker/asyncio from randomly attempting IPv6 and crashing with Errno 101
 parsed = urlparse(db_url)
 
+# Bypass PgBouncer (6543) by connecting directly to the database port (5432)
+# This prevents the DuplicatePreparedStatementError when asyncpg introspects the DB
+if parsed.port == 6543:
+    netloc = parsed.netloc.replace(":6543", ":5432")
+    parsed = parsed._replace(netloc=netloc)
+
 # STRIP any query parameters that might have been hardcoded in the .env string to prevent asyncpg crashes!
 parsed = parsed._replace(query="")
 db_url = urlunparse(parsed)
