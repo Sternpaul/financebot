@@ -51,6 +51,21 @@ def run_migrations_offline() -> None:
     db_url = config_obj.supabase_url
     if db_url.startswith("postgresql://"):
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        
+    from urllib.parse import urlparse, urlunparse
+    import socket
+    parsed = urlparse(db_url)
+    parsed = parsed._replace(query="")
+    db_url = urlunparse(parsed)
+    if parsed.hostname:
+        try:
+            addr_info = socket.getaddrinfo(parsed.hostname, parsed.port, family=socket.AF_INET)
+            if addr_info:
+                ipv4 = addr_info[0][4][0]
+                netloc = parsed.netloc.replace(parsed.hostname, ipv4)
+                db_url = urlunparse(parsed._replace(netloc=netloc))
+        except Exception:
+            pass
 
     context.configure(
         url=db_url,
@@ -81,6 +96,21 @@ async def run_async_migrations() -> None:
     import uuid
     if db_url.startswith("postgresql://"):
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        
+    from urllib.parse import urlparse, urlunparse
+    import socket
+    parsed = urlparse(db_url)
+    parsed = parsed._replace(query="")
+    db_url = urlunparse(parsed)
+    if parsed.hostname:
+        try:
+            addr_info = socket.getaddrinfo(parsed.hostname, parsed.port, family=socket.AF_INET)
+            if addr_info:
+                ipv4 = addr_info[0][4][0]
+                netloc = parsed.netloc.replace(parsed.hostname, ipv4)
+                db_url = urlunparse(parsed._replace(netloc=netloc))
+        except Exception:
+            pass
 
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = db_url
