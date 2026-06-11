@@ -67,11 +67,15 @@ Before running any migrations, you MUST enable the `pgvector` extension in your 
 
 2. Clone the repository.
 3. Copy `.env.example` to `.env` and fill in your API keys (Discord, Supabase connection string, etc.).
-4. Run the stack:
+4. Run the database migrations to create the schema:
+```bash
+docker compose run --rm worker alembic upgrade head
+```
+5. Run the stack:
 ```bash
 docker compose up --build -d
 ```
-5. **Authenticate Telegram (One-Time Setup):**
+6. **Authenticate Telegram (One-Time Setup):**
 To achieve true real-time ingestion for Telegram and to read private channels, you must authenticate the bot with your Telegram account.
 Get your `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) and add them to your `.env` file. Then, run the interactive authentication script inside the docker container:
 ```bash
@@ -79,7 +83,7 @@ docker compose run --build --rm worker python login_telegram.py
 ```
 *(Enter your phone number and login code. This securely saves a `bot.session` file into the mounted `sessions/` directory, keeping the bot permanently authenticated.)*
 
-6. Restart the stack to apply the new session:
+7. Restart the stack to apply the new session:
 ```bash
 docker compose restart worker
 ```
