@@ -62,6 +62,13 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 
 ## 🚀 Getting Started
 
+### 🖥️ Dashboard Deployment (Vercel)
+If you are deploying the Next.js Dashboard to Vercel, you must set the following environment variables in your Vercel project settings:
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL (e.g. `https://your-project.supabase.co`)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Public Key
+*(Note: The user requested NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, but standard Supabase terminology uses ANON_KEY. Set whichever your frontend configuration requires).*
+
+### 🤖 Backend Stack Deployment (Docker)
 1. **Enable pgvector on Supabase (CRITICAL):**
 Before running any migrations, you MUST enable the `pgvector` extension in your Supabase project. You can do this by going to the Supabase Dashboard -> Database -> Extensions -> search for `vector` and enable it. Or run `create extension vector;` in the SQL editor.
 
