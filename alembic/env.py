@@ -112,16 +112,13 @@ async def run_async_migrations() -> None:
         except Exception:
             pass
 
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = db_url
-
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    from sqlalchemy.ext.asyncio import create_async_engine
+    connectable = create_async_engine(
+        db_url,
         poolclass=pool.NullPool,
         connect_args={
             "statement_cache_size": 0
-        },
+        }
     )
 
     async with connectable.connect() as connection:
