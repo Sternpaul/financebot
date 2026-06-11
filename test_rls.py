@@ -1,6 +1,9 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import asyncio
 from sqlalchemy import create_engine, text
-engine = create_engine('postgresql://postgres.dnzjzzshkzdvucggmnhq:REDACTED_PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres')
+engine = create_engine(os.getenv('SUPABASE_URL'))
 with engine.connect() as conn:
     conn.execute(text('ALTER TABLE ingestion_logs DISABLE ROW LEVEL SECURITY;'))
     conn.commit()

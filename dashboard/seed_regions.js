@@ -1,5 +1,6 @@
+require('dotenv').config({ path: '../.env' });
 const { Client } = require('pg');
-const client = new Client({ connectionString: 'postgresql://postgres.dnzjzzshkzdvucggmnhq:REDACTED_PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres' });
+const client = new Client({ connectionString: process.env.SUPABASE_URL });
 client.connect().then(async () => {
   try {
     // Delete old GeneralMarket

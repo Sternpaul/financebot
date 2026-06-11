@@ -1,3 +1,4 @@
+require('dotenv').config();
 // removed
 
 // We need the URL and anon key from bot/config.py or dashboard/.env.local
@@ -6,7 +7,7 @@ const url = "https://dnzjzzshkzdvucggmnhq.supabase.co";
 // Let's use pg directly to check if there are rows in ingestion_logs.
 
 const { Client } = require('pg');
-const client = new Client({ connectionString: 'postgresql://postgres.dnzjzzshkzdvucggmnhq:REDACTED_PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres' });
+const client = new Client({ connectionString: process.env.SUPABASE_URL });
 
 async function run() {
   await client.connect();
