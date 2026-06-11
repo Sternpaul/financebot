@@ -100,6 +100,13 @@ async def run_async_migrations() -> None:
     from urllib.parse import urlparse, urlunparse
     import socket
     parsed = urlparse(db_url)
+    
+    # Bypass PgBouncer (6543) by connecting directly to the database port (5432)
+    # This prevents the DuplicatePreparedStatementError during Alembic introspection
+    if parsed.port == 6543:
+        netloc = parsed.netloc.replace(":6543", ":5432")
+        parsed = parsed._replace(netloc=netloc)
+        
     parsed = parsed._replace(query="")
     db_url = urlunparse(parsed)
     if parsed.hostname:
