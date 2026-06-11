@@ -40,6 +40,8 @@ class ContentSource(Base):
     handle = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_core = Column(Boolean, default=False)
+    region = Column(String, nullable=True)
+    display_name = Column(String, nullable=True)
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class NewsArticle(Base):

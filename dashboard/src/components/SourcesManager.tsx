@@ -11,22 +11,11 @@ interface ContentSource {
   handle: string;
   is_active: boolean;
   is_core: boolean;
+  region?: string | null;
+  display_name?: string | null;
   db_id?: number;
 }
 
-const REGION_MAPPING: Record<string, { region: string, name: string }> = {
-  'SPY': { region: 'US', name: 'S&P 500' },
-  'QQQ': { region: 'US', name: 'NASDAQ' },
-  'DIA': { region: 'US', name: 'Dow Jones' },
-  '^GDAXI': { region: 'EU', name: 'DAX' },
-  '^STOXX50E': { region: 'EU', name: 'Euro Stoxx 50' },
-  '^FTSE': { region: 'EU', name: 'FTSE 100' },
-  '000001.SS': { region: 'Asia', name: 'SSE Composite' },
-  '^N225': { region: 'Asia', name: 'Nikkei 225' },
-  '^KS11': { region: 'Asia', name: 'KOSPI' },
-  '^NSEI': { region: 'Emerging Markets', name: 'Nifty 50' },
-  '^BVSP': { region: 'Emerging Markets', name: 'Bovespa' }
-};
 
 export default function SourcesManager() {
   const [sources, setSources] = useState<ContentSource[]>([]);
@@ -113,10 +102,11 @@ export default function SourcesManager() {
   );
 
   // Grouping
-  const regionalSources = sources.filter(s => s.platform === 'yfinance' && REGION_MAPPING[s.handle]);
-  const otherSources = sources.filter(s => !(s.platform === 'yfinance' && REGION_MAPPING[s.handle]));
+  const regionalSources = sources.filter(s => s.region);
+  const otherSources = sources.filter(s => !s.region);
   
-  const regions = ['US', 'EU', 'Asia', 'Emerging Markets'];
+  // Get unique regions dynamically
+  const regions = Array.from(new Set(regionalSources.map(s => s.region as string)));
 
   return (
     <div style={{ marginTop: '2rem', borderTop: '1px solid var(--glass-border)', paddingTop: '2rem' }}>
@@ -151,7 +141,7 @@ export default function SourcesManager() {
       <h3 style={{ marginBottom: '1rem', color: 'var(--accent-primary)' }}>General Market News</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px' }}>
         {regions.map(region => {
-          const sourcesInRegion = regionalSources.filter(s => REGION_MAPPING[s.handle]?.region === region);
+          const sourcesInRegion = regionalSources.filter(s => s.region === region);
           if (sourcesInRegion.length === 0) return null;
           
           const allActive = sourcesInRegion.every(s => s.is_active);
@@ -166,7 +156,7 @@ export default function SourcesManager() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {sourcesInRegion.map(source => (
                   <div key={source.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>{REGION_MAPPING[source.handle].name} <span style={{fontSize: '0.75rem', opacity: 0.5}}>({source.handle})</span></span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{source.display_name || source.handle} <span style={{fontSize: '0.75rem', opacity: 0.5}}>({source.handle})</span></span>
                     {renderToggle(source.is_active, () => handleToggle(source.id, source.is_active, false))}
                   </div>
                 ))}
