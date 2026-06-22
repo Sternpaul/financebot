@@ -12,6 +12,8 @@
     XHR.send = function() {
         this.addEventListener('load', function() {
             if (this._url && typeof this._url === 'string' && this._url.includes('/graphql/')) {
+                const isTimeline = this._url.includes('HomeTimeline') ||
+                                   this._url.includes('HomeLatestTimeline') ||
                                    this._url.includes('ListLatestTweetsTimeline') ||
                                    this._url.includes('UserTweets') ||
                                    this._url.includes('TweetDetail') ||
@@ -72,6 +74,8 @@
             const response = await originalFetch.apply(this, arguments);
             
             if (url && typeof url === 'string' && url.includes('/graphql/')) {
+                const isTimeline = url.includes('HomeTimeline') ||
+                                   url.includes('HomeLatestTimeline') ||
                                    url.includes('ListLatestTweetsTimeline') ||
                                    url.includes('UserTweets') ||
                                    url.includes('TweetDetail') ||
