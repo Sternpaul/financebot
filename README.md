@@ -9,16 +9,37 @@ While the primary interface is the sleek Next.js Web Dashboard, the platform inc
 This project is built for portability and zero vendor lock-in, deploying easily via Docker Compose.
 
 The platform utilizes a **Modern Full-Stack Architecture**:
-1. **Web Dashboard (`dashboard/`)**: The core product. A sleek Next.js 15 Server-Side Rendered (SSR) application connected to Supabase. It features dynamic portfolios, real-time data fetching, and an incredibly fast UI.
-2. **Worker Process (`bot/worker.py`)**: Runs `APScheduler` to handle background polling (RSS, News, Market Data), generate vector embeddings, and produce system events.
-3. **Messaging Bot Process (`bot/main.py`)**: An ancillary service that consumes real-time alerts from Redis Streams and pushes notifications to configured platforms (e.g. Discord).
+- **Dashboard:** Next.js (React) front-end displaying the portfolio, watchlist, and AI reports.
+- **Bot/Worker:** A Discord bot & background scheduler built in Python (Discord.py / APScheduler).
+- **Brain/AI:** Python services hitting OpenRouter (or local LLMs) for synthesizing unstructured news into investment ideas.
+- **Chrome Extension (New):** A locally installed Chrome extension that intercepts Twitter (X.com) timelines to scrape tweets & images into Supabase natively via REST API.
+- **Database:** Supabase (PostgreSQL with pgvector for embeddings).
 
-### Core Technologies
-- **Next.js 15+ & Vercel**: The primary interface. Features a modern, minimalist UI (Vercel/Linear style) with responsive charts and theming.
-- **Supabase (PostgreSQL + pgvector)**: Single source of truth for portfolio holdings, watchlists, user settings, and document embeddings.
-- **Real-Time Market Data**: Integration with Yahoo Finance and Massive.com (Polygon) for fail-safe, live pricing and time-series chart alignment.
-- **Python 3.11 & SQLAlchemy 2.0**: Handles the heavy lifting of background cron jobs, RSS polling, and data processing.
-- **Redis Streams**: Asynchronous event bus connecting the worker to the notification engine.
+---
+
+## 🚀 The FinanceBot Chrome Extension (Local Scraping)
+
+Twitter aggressively blocks traditional cloud scrapers. To get around this, FinanceBot includes a custom Chrome Extension (`/extension`) that silently intercepts raw tweets and images as you browse your timeline, and pushes them directly into your Supabase database.
+
+### 1. Database Migration
+Before using the extension, you must create the `raw_tweets` table. On your Google Cloud backend server, run the included Python migration script inside your worker container:
+```bash
+docker compose exec -T worker python bot/create_raw_tweets_table.py
+```
+
+### 2. Installation
+1. Open Google Chrome.
+2. Go to `chrome://extensions/`.
+3. Toggle **Developer mode** to ON (top right).
+4. Click **Load unpacked** (top left) and select the `financebot/extension` folder.
+
+### 3. Configuration & Filtering
+Click the FinanceBot puzzle icon in your Chrome toolbar to open the popup.
+- **Supabase URL & Key:** Enter your Supabase REST API credentials.
+- **Keyword Blocklist:** Ignore noisy topics. Enter comma-separated words (e.g. `football, messi, ronaldo`). Any tweet containing these words will be dropped instantly.
+- **Username Blocklist:** Ignore noisy accounts (e.g. `dogecoin_fan, cryptospambot`).
+
+The extension intercepts your timeline passively and saves clean data, including high-res image URLs, directly into your database's `raw_tweets` table!
 
 ---
 
