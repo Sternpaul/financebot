@@ -6,9 +6,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import text
 from dotenv import load_dotenv
-from bot.db.database import engine
 
 load_dotenv()
+
+from bot.db.database import engine
 
 async def enable_rls():
     # List of all tables from models.py
