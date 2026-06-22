@@ -2,14 +2,33 @@
 function extractArticleContent() {
   let content = "";
   
-  // 1. Try to find the main <article> tag (standard in modern news sites)
-  const articleNode = document.querySelector('article');
-  if (articleNode) {
-    content = articleNode.innerText;
+  // 1. Try to find the main content container using common selectors (including Substack)
+  const contentSelectors = [
+    '.available-content', // Substack
+    '.body.markup', // Substack alternate
+    '.post-content',
+    '.article-body',
+    '.article-content',
+    '.entry-content',
+    'article', // Standard HTML5
+    'main'
+  ];
+
+  let bestNode = null;
+  for (const selector of contentSelectors) {
+    const node = document.querySelector(selector);
+    if (node && node.innerText.trim().length > 100) {
+      bestNode = node;
+      break;
+    }
+  }
+
+  if (bestNode) {
+    content = bestNode.innerText;
   } else {
     // 2. Fallback: Find the element with the most <p> tags inside it
     let maxPCount = 0;
-    let bestNode = document.body;
+    bestNode = document.body;
     
     const divs = document.querySelectorAll('div, main, section');
     divs.forEach(div => {
