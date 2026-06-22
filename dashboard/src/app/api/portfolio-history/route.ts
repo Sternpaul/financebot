@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
   const { searchParams } = new URL(request.url);
   const symbols = searchParams.get('symbols');
   const range = searchParams.get('range') || '1mo';
@@ -10,12 +14,38 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing symbols parameter' }, { status: 400 });
   }
 
+  const validRanges = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '5y', 'max'];
+  const validIntervals = ['1d', '1wk', '1mo'];
+
+  if (!validRanges.includes(range)) {
+    return NextResponse.json({ error: 'Invalid range' }, { status: 400 });
+  }
+
+  if (!validIntervals.includes(interval)) {
+    return NextResponse.json({ error: 'Invalid interval' }, { status: 400 });
+  }
+
   const symbolArray = symbols.split(',');
+
+  if (symbolArray.length > 20) {
+    return NextResponse.json({ error: 'Too many symbols (max 20)' }, { status: 400 });
+  }
+
+  for (const sym of symbolArray) {
+    if (!/^[A-Z0-9.^=-]{1,20}$/.test(sym)) {
+      return NextResponse.json({ error: `Invalid symbol format: ${sym}` }, { status: 400 });
+    }
+  }
+
+  const encodedSymbols = encodeURIComponent(symbols);
+  const encodedRange = encodeURIComponent(range);
+  const encodedInterval = encodeURIComponent(interval);
+
   const apiKey = process.env.MASSIVE_API_KEY;
 
   // Primary: Yahoo Finance Spark API
   try {
-    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=${range}&interval=${interval}`;
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodedSymbols}&range=${encodedRange}&interval=${encodedInterval}`;
     const yahooRes = await fetch(yahooUrl, { next: { revalidate: 60 } });
     
     if (!yahooRes.ok) {

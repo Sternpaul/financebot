@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    const authError = await requireAuth();
+    if (authError) return authError;
+
     const { ticker } = await req.json();
 
     if (!ticker) {
       return NextResponse.json({ error: 'Ticker is required' }, { status: 400 });
     }
 
+    if (!/^[A-Z0-9.^=-]{1,20}$/.test(ticker)) {
+      return NextResponse.json({ error: 'Invalid ticker format' }, { status: 400 });
+    }
+
     // 1. Fetch Market Knowledge for Ticker
-    const { data: knowledge } = await supabase
+    const { data: knowledge } = await supabaseAdmin
       .from('market_knowledge')
       .select('knowledge_type, content')
       .eq('ticker', ticker)
@@ -18,7 +26,7 @@ export async function POST(req: Request) {
       .limit(5);
 
     // 2. Fetch Latest News for Ticker
-    const { data: news } = await supabase
+    const { data: news } = await supabaseAdmin
       .from('news_articles')
       .select('title, content, source_platform')
       .or(`source_handle.eq.${ticker},tickers_mentioned.cs.{${ticker}}`)

@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    const authError = await requireAuth();
+    if (authError) return authError;
+
     // Fetch Latest News, prioritizing telegram and substack, then general news
-    const { data: news } = await supabase
+    const { data: news } = await supabaseAdmin
       .from('news_articles')
       .select('title, content, source_platform, author_name, tickers_mentioned')
       .order('posted_at', { ascending: false })

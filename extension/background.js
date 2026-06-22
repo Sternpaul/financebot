@@ -118,12 +118,18 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       const allowedDomains = (config.domainAllowlist || "").toLowerCase().split(',').map(s => s.trim()).filter(s => s);
       if (allowedDomains.length === 0) return; // Feature disabled if empty
       
-      const tabUrlLower = tab.url.toLowerCase();
-      const isAllowed = allowedDomains.some(domain => tabUrlLower.includes(domain));
-      
-      if (isAllowed) {
-        console.log(`FinanceBot: Omni-scraping allowed domain: ${tab.url}`);
-        scrapeCurrentTab(tab, true);
+      try {
+        const tabHostname = new URL(tab.url).hostname.toLowerCase();
+        const isAllowed = allowedDomains.some(domain => 
+          tabHostname === domain || tabHostname.endsWith(`.${domain}`)
+        );
+        
+        if (isAllowed) {
+          console.log(`FinanceBot: Omni-scraping allowed domain: ${tab.url}`);
+          scrapeCurrentTab(tab, true);
+        }
+      } catch (e) {
+        console.error("Invalid URL in omni-scraper", e);
       }
     });
   }

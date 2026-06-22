@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import Link from 'next/link';
 import { getHoldings, getExchangeRate } from '@/app/portfolio/actions';
 import PortfolioCharts from '@/components/PortfolioCharts';
@@ -116,7 +116,7 @@ export default async function Portfolio() {
     }
   }
 
-  const { data: transactions, error } = await supabase
+  const { data: transactions, error } = await supabaseAdmin
     .from('transactions')
     .select('*')
     .eq('account', 'main')

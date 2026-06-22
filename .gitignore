@@ -21,8 +21,6 @@ __pycache__/
 *.swo
 
 # Docker
-.dockerignore
-
 # Database
 *.sqlite3
 
@@ -43,3 +41,9 @@ gcp_ssh.pub
 sessions/
 *.session
 backup/
+
+# Reviews / AI audits
+GPT-5.5-review.txt
+implementation_plan.md
+# Dependencies (root-level)
+node_modules/

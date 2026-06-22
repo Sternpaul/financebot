@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import FeedViewer from '@/components/FeedViewer';
 
 export const dynamic = 'force-dynamic';
@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
   // Fetch latest per platform to ensure slower platforms (like Substack) still appear
   const [newsRes, tgRes, substackRes] = await Promise.all([
-    supabase.from('news_articles').select('*').eq('source_platform', 'yfinance').order('posted_at', { ascending: false }).limit(30),
-    supabase.from('news_articles').select('*').eq('source_platform', 'telegram').order('posted_at', { ascending: false }).limit(40),
-    supabase.from('news_articles').select('*').eq('source_platform', 'substack').order('posted_at', { ascending: false }).limit(10)
+    supabaseAdmin.from('news_articles').select('*').eq('source_platform', 'yfinance').order('posted_at', { ascending: false }).limit(30),
+    supabaseAdmin.from('news_articles').select('*').eq('source_platform', 'telegram').order('posted_at', { ascending: false }).limit(40),
+    supabaseAdmin.from('news_articles').select('*').eq('source_platform', 'substack').order('posted_at', { ascending: false }).limit(10)
   ]);
 
   const error = newsRes.error || tgRes.error || substackRes.error;

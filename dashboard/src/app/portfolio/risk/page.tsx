@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { getHoldings } from '@/app/portfolio/actions';
 import RiskCockpit from '@/components/RiskCockpit';
 import Link from 'next/link';
@@ -54,7 +54,7 @@ export default async function RiskDashboard() {
       // Fetch sectors from Watchlist
       const activeTickers = holdings.filter((h: any) => !h.isCash).map((h: any) => h.ticker);
       if (activeTickers.length > 0) {
-          const { data } = await supabase.from('watchlist').select('ticker, sector').in('ticker', activeTickers);
+          const { data } = await supabaseAdmin.from('watchlist').select('ticker, sector').in('ticker', activeTickers);
           if (data) {
               data.forEach(row => {
                   if (row.sector) sectors[row.ticker] = row.sector;

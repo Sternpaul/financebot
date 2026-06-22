@@ -1,10 +1,10 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function fetchIngestionLogs(limit = 100, platform: 'raw' | 'ai' = 'raw') {
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from('ingestion_logs')
       .select('id, timestamp, source_platform, source_handle, status, message')
       .order('timestamp', { ascending: false })

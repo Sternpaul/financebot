@@ -35,14 +35,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const div = document.createElement('div');
       div.className = 'log-item';
 
-      div.innerHTML = `
-        <div>
-          <span class="log-time">[${timeStr}]</span>
-          <span class="log-action">${log.action}</span>
-        </div>
-        <div class="log-details">${log.details}</div>
-        ${log.url ? `<div class="log-url">${log.url}</div>` : ''}
-      `;
+      const topDiv = document.createElement('div');
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'log-time';
+      timeSpan.textContent = `[${timeStr}] `;
+      
+      const actionSpan = document.createElement('span');
+      actionSpan.className = 'log-action';
+      actionSpan.textContent = log.action;
+      
+      topDiv.appendChild(timeSpan);
+      topDiv.appendChild(actionSpan);
+      
+      const detailsDiv = document.createElement('div');
+      detailsDiv.className = 'log-details';
+      detailsDiv.textContent = log.details;
+      
+      div.appendChild(topDiv);
+      div.appendChild(detailsDiv);
+      
+      if (log.url) {
+        const urlDiv = document.createElement('div');
+        urlDiv.className = 'log-url';
+        urlDiv.textContent = log.url;
+        div.appendChild(urlDiv);
+      }
+      
       logsList.appendChild(div);
     });
   }

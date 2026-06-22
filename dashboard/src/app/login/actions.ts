@@ -6,7 +6,10 @@ import { SignJWT } from 'jose';
 
 // Helper to encode the secret key
 const getSecretKey = () => {
-  const secret = process.env.DASHBOARD_PASSWORD || 'fallback_secret_for_local_dev';
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error('AUTH_SECRET is not set. Required for signing JWTs.');
+  }
   return new TextEncoder().encode(secret);
 };
 
@@ -15,24 +18,7 @@ export async function authenticate(prevState: any, formData: FormData) {
   const correctPassword = process.env.DASHBOARD_PASSWORD;
 
   if (!correctPassword) {
-    if (password === 'admin') {
-       // local fallback
-       const jwt = await new SignJWT({ authenticated: true })
-         .setProtectedHeader({ alg: 'HS256' })
-         .setIssuedAt()
-         .setExpirationTime('30d')
-         .sign(getSecretKey());
-         
-       const cookieStore = await cookies();
-       cookieStore.set('financebot_auth', jwt, {
-         httpOnly: true,
-         secure: process.env.NODE_ENV === 'production',
-         maxAge: 60 * 60 * 24 * 30, // 30 days
-         path: '/',
-       });
-       redirect('/');
-    }
-    return { error: 'DASHBOARD_PASSWORD is not set in Vercel Environment Variables.' };
+    return { error: 'DASHBOARD_PASSWORD is not set in Vercel Environment Variables. Login is disabled.' };
   }
 
   if (password === correctPassword) {
@@ -40,14 +26,15 @@ export async function authenticate(prevState: any, formData: FormData) {
     const jwt = await new SignJWT({ authenticated: true })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('30d')
+      .setExpirationTime('7d')
       .sign(getSecretKey());
 
     const cookieStore = await cookies();
     cookieStore.set('financebot_auth', jwt, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
     

@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { revalidatePath } from 'next/cache';
 
 export async function searchTickers(query: string) {
@@ -21,7 +21,7 @@ export async function searchTickers(query: string) {
 }
 
 export async function addToWatchlist(ticker: string, name: string, type: string) {
-  const { error } = await supabase.from('watchlist').insert([{
+  const { error } = await supabaseAdmin.from('watchlist').insert([{
     ticker: ticker.toUpperCase(),
     name,
     asset_type: type || 'Stock',
@@ -39,12 +39,12 @@ export async function addToWatchlist(ticker: string, name: string, type: string)
 }
 
 export async function removeFromWatchlist(id: number) {
-  await supabase.from('watchlist').delete().eq('id', id);
+  await supabaseAdmin.from('watchlist').delete().eq('id', id);
   revalidatePath('/watchlist');
 }
 
 export async function updateCustomAlerts(ticker: string, customAlerts: any) {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('watchlist')
     .update({ custom_alerts: customAlerts })
     .eq('ticker', ticker.toUpperCase());

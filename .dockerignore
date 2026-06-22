@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+sessions/
+*.session
+.git/
+node_modules/
+dashboard/
+__pycache__/
+*.pyc
+.venv/
+venv/
+backup/
+logs/
+*.md
+GPT-5.5-review.txt

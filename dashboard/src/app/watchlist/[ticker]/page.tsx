@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import AlertsManager from '@/components/AlertsManager';
@@ -27,7 +27,7 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
   // 1.5 Fetch Watchlist Data from DB to get custom_alerts
   let watchlistData = null;
   try {
-    const { data } = await supabase.from('watchlist').select('*').eq('ticker', ticker).single();
+    const { data } = await supabaseAdmin.from('watchlist').select('*').eq('ticker', ticker).single();
     if (data) watchlistData = data;
   } catch(e) {
       console.error(e);
@@ -92,7 +92,7 @@ export default async function TickerDashboard({ params }: { params: Promise<{ ti
   }
 
   try {
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from('news_articles')
       .select('*')
       .or(`source_handle.eq.${ticker},tickers_mentioned.cs.{${ticker}}`)

@@ -1,8 +1,8 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import Link from 'next/link';
 
 export default async function AlertHistory() {
-  const { data: alerts, error } = await supabase
+  const { data: alerts, error } = await supabaseAdmin
     .from('technical_alerts')
     .select('*, alert_performance(forward_3d, forward_7d, forward_30d)')
     .order('triggered_at', { ascending: false })

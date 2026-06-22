@@ -1,17 +1,34 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    const authError = await requireAuth();
+    if (authError) return authError;
+
     const { messages } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
     }
 
+    if (messages.length > 50) {
+      return NextResponse.json({ error: 'Messages array too large (max 50)' }, { status: 400 });
+    }
+
+    for (const msg of messages) {
+      if (!['system', 'user', 'assistant'].includes(msg.role)) {
+        return NextResponse.json({ error: 'Invalid message role' }, { status: 400 });
+      }
+      if (typeof msg.content !== 'string' || msg.content.length > 10000) {
+        return NextResponse.json({ error: 'Invalid message content' }, { status: 400 });
+      }
+    }
+
     // Fetch context from Supabase to augment the prompt
     // 1. Get portfolio
-    const { data: txs } = await supabase.from('transactions').select('ticker, shares').not('ticker', 'is', null);
+    const { data: txs } = await supabaseAdmin.from('transactions').select('ticker, shares').not('ticker', 'is', null);
     
     let portfolioString = 'No active portfolio.';
     if (txs && txs.length > 0) {
@@ -28,7 +45,7 @@ export async function POST(req: Request) {
 
     // 2. Get recent market knowledge
     // We fetch the latest 10 rows
-    const { data: knowledge } = await supabase
+    const { data: knowledge } = await supabaseAdmin
       .from('market_knowledge')
       .select('ticker, content')
       .order('created_at', { ascending: false })

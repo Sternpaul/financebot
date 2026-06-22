@@ -3,13 +3,16 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const getSecretKey = () => {
-  const secret = process.env.DASHBOARD_PASSWORD || 'fallback_secret_for_local_dev';
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error('AUTH_SECRET environment variable is missing. It is required for signing JWTs.');
+  }
   return new TextEncoder().encode(secret);
 };
 
 export async function middleware(request: NextRequest) {
-  // If the user is trying to access the login page, let them pass
-  if (request.nextUrl.pathname.startsWith('/login')) {
+  // If the user is trying to access the login page or health check, let them pass
+  if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/api/health') {
     return NextResponse.next();
   }
 
@@ -34,6 +37,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Protect all routes except API routes, static files, Next.js internals, and images
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|manifest.json|pwa_icon.png|icon-).*)'],
+  // Protect all routes except static files, Next.js internals, and images
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|pwa_icon.png|icon-).*)'],
 };

@@ -1,8 +1,8 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import Link from 'next/link';
 
 export default async function GlobalAlerts() {
-  const { data: watchlists } = await supabase.from('watchlist').select('*');
+  const { data: watchlists } = await supabaseAdmin.from('watchlist').select('*');
   
   const activeAlerts = (watchlists || []).filter(w => 
     w.custom_alerts && Object.keys(w.custom_alerts).length > 0

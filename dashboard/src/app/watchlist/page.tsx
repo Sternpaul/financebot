@@ -1,10 +1,10 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import WatchlistManager from '@/components/WatchlistManager';
 
 export const dynamic = 'force-dynamic';
 
 export default async function WatchlistPage() {
-  const { data: watchlist } = await supabase
+  const { data: watchlist } = await supabaseAdmin
     .from('watchlist')
     .select('*')
     .order('ticker', { ascending: true });

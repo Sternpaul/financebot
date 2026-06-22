@@ -1,13 +1,13 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { revalidatePath } from 'next/cache';
 
 // Replaces `addHolding`. Now inserts a transaction.
 export async function addTransaction(type: string, ticker: string | null, shares: number | null, price: number | null, dateStr: string) {
   const symbol = ticker ? ticker.toUpperCase() : null;
 
-  const { error } = await supabase.from('transactions').insert([{
+  const { error } = await supabaseAdmin.from('transactions').insert([{
     type,
     ticker: symbol,
     shares,
@@ -38,7 +38,7 @@ export async function importTransactions(transactionsList: any[]) {
     currency: 'USD'
   }));
 
-  const { error } = await supabase.from('transactions').insert(formatted);
+  const { error } = await supabaseAdmin.from('transactions').insert(formatted);
   
   if (error) {
     console.error("Error bulk adding transactions", error);
@@ -49,7 +49,7 @@ export async function importTransactions(transactionsList: any[]) {
   return { success: true };
 }
 export async function getHoldings() {
-  const { data: transactions, error } = await supabase
+  const { data: transactions, error } = await supabaseAdmin
     .from('transactions')
     .select('*')
     .eq('account', 'main')
@@ -175,7 +175,7 @@ export async function getHistoricalPrice(ticker: string, dateStr: string) {
 }
 
 export async function deleteTransaction(id: number) {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('transactions')
     .delete()
     .eq('id', id);

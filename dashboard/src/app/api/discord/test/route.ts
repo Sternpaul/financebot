@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
+
+let lastCallTime = 0;
 
 export async function POST() {
   try {
+    const authError = await requireAuth();
+    if (authError) return authError;
+
+    const now = Date.now();
+    if (now - lastCallTime < 60000) {
+      return NextResponse.json({ error: 'Rate limit exceeded. Please wait 60 seconds.' }, { status: 429 });
+    }
+    lastCallTime = now;
     const botToken = process.env.DISCORD_TOKEN;
     const channelId = process.env.DISCORD_CHANNEL_ID;
 
