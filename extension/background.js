@@ -58,13 +58,13 @@ function extractTweets(obj, results = []) {
 }
 
 async function processAndSend(tweets) {
-  chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'keywordBlocklist', 'usernameBlocklist'], async (config) => {
-    if (!config.supabaseUrl || !config.supabaseKey) {
+  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey', 'keywordBlocklist', 'usernameBlocklist'], async (config) => {
+    if (!config.supabaseUrl || !config.supabasePublishableKey) {
       console.warn("FinanceBot: Supabase credentials not configured in extension popup.");
       return;
     }
 
-    const { supabaseUrl, supabaseKey, keywordBlocklist, usernameBlocklist } = config;
+    const { supabaseUrl, supabasePublishableKey, keywordBlocklist, usernameBlocklist } = config;
     
     // Parse filters
     const keywords = (keywordBlocklist || "").toLowerCase().split(',').map(s => s.trim()).filter(s => s);
@@ -108,8 +108,8 @@ async function processAndSend(tweets) {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabasePublishableKey,
+          'Authorization': `Bearer ${supabasePublishableKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'resolution=ignore-duplicates' // Prevent duplicate inserts
         },

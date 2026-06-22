@@ -11,6 +11,9 @@
     "*://*.twitter.com/*",
     "*://*.x.com/*"
   ],
+  "icons": {
+    "128": "icon128.png"
+  },
   "action": {
     "default_popup": "popup.html"
   },
