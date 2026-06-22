@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; padding: 30px; max-width: 600px; margin: 0 auto; background: #15202b; color: white; }
+    h3 { margin-top: 0; color: #1d9bf0; font-size: 24px; }
+    label { font-size: 14px; color: #8899a6; display: block; margin-bottom: 6px; margin-top: 20px; }
+    input, textarea { width: 100%; margin-bottom: 12px; padding: 12px; box-sizing: border-box; background: #22303c; border: 1px solid #38444d; color: white; border-radius: 4px; }
+    input:focus, textarea:focus { outline: none; border-color: #1d9bf0; }
+    textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 13px; }
+    button { width: 100%; padding: 12px; background: #1d9bf0; color: white; border: none; cursor: pointer; border-radius: 20px; font-weight: bold; font-size: 16px; margin-top: 20px; }
+    button:hover { background: #1a8cd8; }
+  </style>
+</head>
+<body>
+  <h3>FinanceBot Scraper</h3>
+  <label>Supabase URL:</label>
+  <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co">
+  <label>Supabase Publishable Key:</label>
+  <input type="password" id="supabasePublishableKey" placeholder="sb_publishable_...">
+  
+  <label>Keyword Blocklist (comma separated):</label>
+  <textarea id="keywordBlocklist" placeholder="football, messi, ronaldo, politics"></textarea>
+
+  <label>Username Blocklist (comma separated):</label>
+  <textarea id="usernameBlocklist" placeholder="elonmusk, dogecoin_fan"></textarea>
+
+  <label>Omni-Scraper Domain Allowlist (comma separated):</label>
+  <textarea id="domainAllowlist" placeholder="bloomberg.com, wsj.com, substack.com"></textarea>
+
+  <button id="saveBtn">Save Configuration</button>
+  <div id="status" style="margin-top: 10px; color: #00ba7c; font-size: 14px; text-align: center;"></div>
+  <script src="options.js"></script>
+</body>
+</html>

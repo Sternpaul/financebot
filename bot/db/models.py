@@ -156,13 +156,24 @@ class LikedTweet(Base):
     is_processed = Column(Boolean, default=False, server_default='false')
     ingested_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class WebContent(Base):
-    __tablename__ = 'web_content'
+class CuratedWebContent(Base):
+    __tablename__ = 'curated_webcontent'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     url = Column(String, unique=True, nullable=False)
     title = Column(String)
     content = Column(Text, nullable=False)
-    source = Column(String, default='chrome_extension')
+    source = Column(String, default='chrome_extension_hotkey')
+    is_processed = Column(Boolean, default=False, server_default='false')
+    scraped_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class RawWebContent(Base):
+    __tablename__ = 'raw_webcontent'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    url = Column(String, unique=True, nullable=False)
+    title = Column(String)
+    content = Column(Text, nullable=False)
+    source = Column(String, default='chrome_extension_auto')
     is_processed = Column(Boolean, default=False, server_default='false')
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())

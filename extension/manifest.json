@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "FinanceBot Scraper",
-  "version": "1.1",
-  "description": "Scrapes Twitter timelines, liked tweets, and external articles directly into Supabase.",
+  "version": "1.2",
+  "description": "Omni-scraper for Twitter and all allowed domains.",
   "permissions": [
     "storage",
     "contextMenus",
@@ -15,9 +15,8 @@
   "icons": {
     "128": "icon128.png"
   },
-  "action": {
-    "default_popup": "popup.html"
-  },
+  "action": {},
+  "options_page": "options.html",
   "background": {
     "service_worker": "background.js",
     "type": "module"

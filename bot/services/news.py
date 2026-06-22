@@ -34,17 +34,45 @@ async def cleanup_old_articles():
         if result.rowcount > 0:
             logger.info(f"Cleaned up {result.rowcount} articles older than 365 days.")
 
-async def cleanup_old_raw_tweets():
-    """Deletes raw_tweets and liked_tweets older than 30 days to save DB space."""
+async def cleanup_database_size():
+    """Checks DB size and deletes the oldest 10% of raw_webcontent and raw_tweets if size > 400MB."""
     async with get_session() as session:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
-        stmt_raw = delete(RawTweet).where(RawTweet.posted_at < cutoff)
-        res_raw = await session.execute(stmt_raw)
-        stmt_liked = delete(LikedTweet).where(LikedTweet.posted_at < cutoff)
-        res_liked = await session.execute(stmt_liked)
-        await session.commit()
-        if res_raw.rowcount > 0 or res_liked.rowcount > 0:
-            logger.info(f"Cleaned up {res_raw.rowcount} raw tweets and {res_liked.rowcount} liked tweets older than 30 days.")
+        # Get DB Size in MB
+        from sqlalchemy import text
+        result = await session.execute(text("SELECT pg_database_size(current_database()) / 1024 / 1024"))
+        db_size_mb = result.scalar()
+        
+        logger.info(f"Current database size is {db_size_mb} MB.")
+        
+        if db_size_mb > 400:
+            logger.warning("Database size exceeded 400 MB limit! Initiating smart cleanup...")
+            
+            # Delete oldest 10% from raw_tweets
+            stmt1 = text("""
+                DELETE FROM raw_tweets 
+                WHERE id IN (
+                    SELECT id FROM raw_tweets 
+                    ORDER BY posted_at ASC 
+                    LIMIT (SELECT (count(*) * 0.1)::int FROM raw_tweets)
+                )
+            """)
+            res1 = await session.execute(stmt1)
+            
+            # Delete oldest 10% from raw_webcontent
+            stmt2 = text("""
+                DELETE FROM raw_webcontent 
+                WHERE id IN (
+                    SELECT id FROM raw_webcontent 
+                    ORDER BY scraped_at ASC 
+                    LIMIT (SELECT (count(*) * 0.1)::int FROM raw_webcontent)
+                )
+            """)
+            res2 = await session.execute(stmt2)
+            
+            await session.commit()
+            logger.info(f"Cleaned up {res1.rowcount} raw_tweets and {res2.rowcount} raw_webcontent.")
+        else:
+            logger.info("Database size is within safe limits. No cleanup required.")
 
 def extract_tickers_aggressively(text: str, active_tickers: list[str]) -> list[str]:
     found = set()
@@ -310,8 +338,8 @@ async def run_news_ingestion():
     try:
         logger.info("Running cleanup_old_articles...")
         await cleanup_old_articles()
-        logger.info("Running cleanup_old_raw_tweets...")
-        await cleanup_old_raw_tweets()
+        logger.info("Running cleanup_database_size...")
+        await cleanup_database_size()
         logger.info("Running ingest_custom_sources...")
         await ingest_custom_sources()
         logger.info("Running ingest_watchlist_news...")

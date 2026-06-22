@@ -22,12 +22,14 @@ The platform utilizes a **Modern Full-Stack Architecture**:
 Twitter aggressively blocks traditional cloud scrapers. To get around this, FinanceBot includes a custom Chrome Extension (`/extension`) that silently intercepts raw tweets and images as you browse your timeline, and pushes them directly into your Supabase database.
 
 ### 1. Database Migration
-Before using the extension, you must create the `raw_tweets`, `liked_tweets`, and `web_content` tables. On your Google Cloud backend server, run the included Python migration scripts inside your worker container:
+Before using the extension, you must create the necessary tables. On your Google Cloud backend server, run the included Python migration scripts inside your worker container:
 ```bash
 # For v1.0 schema (raw tweets)
 docker compose exec -T worker python bot/create_raw_tweets_table.py
 # For v1.1 schema (likes & web articles)
 docker compose exec -T worker python bot/create_v1_1_tables.py
+# For v1.2 schema (omni-scraper & curated articles)
+docker compose exec -T worker python bot/create_v1_2_tables.py
 ```
 
 ### 2. Installation
@@ -36,17 +38,19 @@ docker compose exec -T worker python bot/create_v1_1_tables.py
 3. Toggle **Developer mode** to ON (top right).
 4. Click **Load unpacked** (top left) and select the `financebot/extension` folder.
 
-### 3. Configuration & Filtering
-Click the FinanceBot puzzle icon in your Chrome toolbar to open the popup.
+### 3. Configuration
+Click the FinanceBot puzzle icon in your Chrome toolbar. This will open the **Settings Page** in a new tab.
 - **Supabase URL & Key:** Enter your Supabase REST API credentials.
 - **Keyword Blocklist:** Ignore noisy topics. Enter comma-separated words (e.g. `football, messi, ronaldo`). Any tweet containing these words will be dropped instantly.
 - **Username Blocklist:** Ignore noisy accounts (e.g. `dogecoin_fan, cryptospambot`).
+- **Omni-Scraper Domain Allowlist:** Add domains (e.g., `bloomberg.com, wsj.com`) that the extension should automatically scrape every time you visit a page.
 
-### 4. Advanced Features (v1.1)
+### 4. Advanced Features (v1.2)
 - **Passive Liked Tweets**: Every time you ❤️ a tweet, or scroll through your "Likes" tab, the extension silently pushes it to the `liked_tweets` table.
 - **Auto URL Unshortening**: The extension automatically resolves annoying `t.co` links to their real destinations.
-- **1-Click Web Scraping**: When reading a news article on an external site (Bloomberg, Substack, etc.), press **Alt+S** (or Command+S on Mac), or Right-Click the page and hit `FinanceBot: Scrape Article`. The extension will extract the clean text of the article and push it to the `web_content` table!
-- **Auto DB Cleanup**: A background cron job in `bot/worker.py` automatically deletes tweets older than 30 days every night to save database space.
+- **1-Click Web Scraping**: When reading a news article on an external site, press **Alt+S** (or Command+S on Mac), or Right-Click the page and hit `FinanceBot: Scrape Article`. The extension will extract the clean text and push it to the `curated_webcontent` table!
+- **Omni-Scraper (Auto)**: For any domains listed in your Domain Allowlist, the extension will *automatically* scrape the page in the background and save it to the `raw_webcontent` table.
+- **Smart DB Cleanup**: A background cron job automatically monitors your Supabase database size. If it exceeds 400 MB, it dynamically deletes the oldest 10% of raw tweets and raw web content to ensure you never run out of space.
 
 ---
 

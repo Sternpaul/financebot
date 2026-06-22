@@ -1,3 +1,7 @@
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'PROCESS_TWEETS') {
     const { url, payload, dataType } = request;
@@ -35,25 +39,44 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 
-async function scrapeCurrentTab(tab) {
-  if (!tab || !tab.id) return;
+async function scrapeCurrentTab(tab, isAuto = false) {
+  if (!tab || !tab.id || !tab.url) return;
   if (tab.url.includes("chrome://") || tab.url.includes("x.com") || tab.url.includes("twitter.com")) {
-    console.warn("FinanceBot: Cannot scrape this internal/Twitter page.");
-    return;
+    return; // Don't scrape Twitter or internal pages with this script
   }
-  
-  console.log("FinanceBot: Scraping article from tab:", tab.url);
   
   // Execute the scraper content script
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     files: ['article_scraper.js']
+  }, (results) => {
+    if (results && results[0] && results[0].result) {
+      const data = results[0].result;
+      if (data.content && data.content.length > 100) {
+        const targetTable = isAuto ? 'raw_webcontent' : 'curated_webcontent';
+        saveWebContent(data, targetTable);
+      } else if (!isAuto) {
+        console.warn("FinanceBot: Failed to find enough content to scrape manually.");
+      }
+    }
   });
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'ARTICLE_SCRAPED') {
-    saveWebContent(request.data);
+// Auto Omni-Scraper
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
+    chrome.storage.local.get(['domainAllowlist'], (config) => {
+      const allowedDomains = (config.domainAllowlist || "").toLowerCase().split(',').map(s => s.trim()).filter(s => s);
+      if (allowedDomains.length === 0) return; // Feature disabled if empty
+      
+      const tabUrlLower = tab.url.toLowerCase();
+      const isAllowed = allowedDomains.some(domain => tabUrlLower.includes(domain));
+      
+      if (isAllowed) {
+        console.log(`FinanceBot: Omni-scraping allowed domain: ${tab.url}`);
+        scrapeCurrentTab(tab, true);
+      }
+    });
   }
 });
 
@@ -184,18 +207,18 @@ async function processAndSend(tweets, dataType = 'timeline') {
   });
 }
 
-async function saveWebContent(data) {
+async function saveWebContent(data, tableName) {
   chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey'], async (config) => {
     if (!config.supabaseUrl || !config.supabasePublishableKey) return;
     
     const { supabaseUrl, supabasePublishableKey } = config;
-    const endpoint = `${supabaseUrl}/rest/v1/web_content`;
+    const endpoint = `${supabaseUrl}/rest/v1/${tableName}`;
 
     const payload = {
       url: data.url,
       title: data.title,
       content: data.content,
-      source: 'chrome_extension',
+      source: tableName === 'raw_webcontent' ? 'chrome_extension_auto' : 'chrome_extension_hotkey',
       is_processed: false
     };
 
@@ -212,14 +235,16 @@ async function saveWebContent(data) {
       });
       
       if (response.ok) {
-        console.log(`FinanceBot: Successfully saved article from ${data.url}`);
-        // Optional: you could show a chrome notification here
-        chrome.notifications?.create({
-          type: "basic",
-          iconUrl: "icon128.png",
-          title: "FinanceBot Scraper",
-          message: "Article successfully saved!"
-        });
+        console.log(`FinanceBot: Successfully saved article to ${tableName} from ${data.url}`);
+        // Optional notification for manual scraping
+        if (tableName === 'curated_webcontent') {
+          chrome.notifications?.create({
+            type: "basic",
+            iconUrl: "icon128.png",
+            title: "FinanceBot Scraper",
+            message: "Article successfully saved to Curated Web Content!"
+          });
+        }
       }
     } catch(err) {
       console.error("FinanceBot: Network error saving article", err);

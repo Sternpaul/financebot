@@ -45,15 +45,5 @@ function extractArticleContent() {
   };
 }
 
-(function() {
-  const data = extractArticleContent();
-  if (data.content.length > 100) {
-    chrome.runtime.sendMessage({
-      type: 'ARTICLE_SCRAPED',
-      data: data
-    });
-    console.log("FinanceBot: Article scraped successfully!");
-  } else {
-    console.warn("FinanceBot: Failed to find enough content to scrape.");
-  }
-})();
+// Return the extracted data directly to the executeScript callback
+extractArticleContent();
