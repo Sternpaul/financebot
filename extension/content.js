@@ -12,12 +12,18 @@ window.addEventListener('message', function(event) {
     if (event.source !== window) return;
     
     if (event.data && event.data.type === 'TWITTER_DATA_INTERCEPTED') {
-        // Pass the intercepted GraphQL data to our background service worker
-        chrome.runtime.sendMessage({
-            type: 'PROCESS_TWEETS',
-            url: event.data.url,
-            dataType: event.data.dataType,
-            payload: event.data.payload
-        });
+        if (!chrome.runtime || !chrome.runtime.id) return; // Fix: Extension context invalidated
+        
+        try {
+            // Pass the intercepted GraphQL data to our background service worker
+            chrome.runtime.sendMessage({
+                type: 'PROCESS_TWEETS',
+                url: event.data.url,
+                dataType: event.data.dataType,
+                payload: event.data.payload
+            });
+        } catch (e) {
+            // Ignore if context is invalidated
+        }
     }
 });

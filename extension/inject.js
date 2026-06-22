@@ -16,7 +16,7 @@
                                    this._url.includes('HomeLatestTimeline') || 
                                    this._url.includes('ListLatestTweetsTimeline') ||
                                    this._url.includes('UserTweets');
-                const isLike = this._url.includes('FavoriteTweet') || this._url.includes('Likes');
+                const isLike = this._url.includes('Likes');
                 
                 if (isTimeline || isLike) {
                     try {
@@ -49,7 +49,7 @@
                                    url.includes('HomeLatestTimeline') || 
                                    url.includes('ListLatestTweetsTimeline') ||
                                    url.includes('UserTweets');
-                const isLike = url.includes('FavoriteTweet') || url.includes('Likes');
+                const isLike = url.includes('Likes');
                 
                 if (isTimeline || isLike) {
                     // Clone the response so we don't break the original stream X consumes
