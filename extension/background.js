@@ -227,7 +227,7 @@ async function processAndSend(tweets, dataType = 'timeline') {
       id: t.id,
       author: t.author,
       text: t.text,
-      media_urls: t.media_urls,
+      media_urls: t.media_urls && t.media_urls.length > 0 ? t.media_urls : null,
       url: t.url,
       posted_at: t.created_at,
       is_processed: false 
