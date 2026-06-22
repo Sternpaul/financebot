@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({
       supabaseUrl: urlInput.value.trim(),
       supabasePublishableKey: keyInput.value.trim(),
+      dashboardPassword: passwordInput.value.trim(),
       keywordBlocklist: keywordInput.value,
       usernameBlocklist: usernameInput.value,
       domainAllowlist: domainInput.value
