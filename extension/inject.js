@@ -12,10 +12,10 @@
     XHR.send = function() {
         this.addEventListener('load', function() {
             if (this._url && typeof this._url === 'string' && this._url.includes('/graphql/')) {
-                const isTimeline = this._url.includes('HomeTimeline') || 
-                                   this._url.includes('HomeLatestTimeline') || 
                                    this._url.includes('ListLatestTweetsTimeline') ||
-                                   this._url.includes('UserTweets');
+                                   this._url.includes('UserTweets') ||
+                                   this._url.includes('TweetDetail') ||
+                                   this._url.includes('TweetResultByRestId');
                 const isLike = this._url.includes('Likes');
                 
                 if (isTimeline || isLike) {
@@ -33,6 +33,20 @@
                 }
             }
         });
+        
+        if (this._url && this._url.includes('FavoriteTweet') && arguments[0]) {
+            try {
+                const bodyStr = typeof arguments[0] === 'string' ? arguments[0] : new TextDecoder().decode(arguments[0]);
+                const parsed = JSON.parse(bodyStr);
+                if (parsed.variables && parsed.variables.tweet_id) {
+                    window.postMessage({
+                        type: 'LIKE_INTERCEPTED',
+                        tweetId: parsed.variables.tweet_id
+                    }, '*');
+                }
+            } catch(e) {}
+        }
+        
         return send.apply(this, arguments);
     };
     
@@ -40,15 +54,28 @@
     const originalFetch = window.fetch;
     window.fetch = async function() {
         const url = arguments[0];
+        const options = arguments[1];
+        
+        if (url && typeof url === 'string' && url.includes('FavoriteTweet') && options && options.body) {
+            try {
+                const parsed = JSON.parse(options.body);
+                if (parsed.variables && parsed.variables.tweet_id) {
+                    window.postMessage({
+                        type: 'LIKE_INTERCEPTED',
+                        tweetId: parsed.variables.tweet_id
+                    }, '*');
+                }
+            } catch(e) {}
+        }
         
         try {
             const response = await originalFetch.apply(this, arguments);
             
             if (url && typeof url === 'string' && url.includes('/graphql/')) {
-                const isTimeline = url.includes('HomeTimeline') || 
-                                   url.includes('HomeLatestTimeline') || 
                                    url.includes('ListLatestTweetsTimeline') ||
-                                   url.includes('UserTweets');
+                                   url.includes('UserTweets') ||
+                                   url.includes('TweetDetail') ||
+                                   url.includes('TweetResultByRestId');
                 const isLike = url.includes('Likes');
                 
                 if (isTimeline || isLike) {

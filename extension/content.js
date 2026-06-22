@@ -25,5 +25,13 @@ window.addEventListener('message', function(event) {
         } catch (e) {
             // Ignore if context is invalidated
         }
+    } else if (event.data && event.data.type === 'LIKE_INTERCEPTED') {
+        if (!chrome.runtime || !chrome.runtime.id) return;
+        try {
+            chrome.runtime.sendMessage({
+                type: 'LIKE_INTERCEPTED',
+                tweetId: event.data.tweetId
+            });
+        } catch(e) {}
     }
 });

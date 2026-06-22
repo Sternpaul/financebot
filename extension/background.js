@@ -7,6 +7,8 @@ function addLog(action, details, url = '') {
   });
 }
 
+let tweetCache = [];
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'PROCESS_TWEETS') {
     const { url, payload, dataType } = request;
@@ -14,9 +16,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Parse tweets from payload
     const tweets = extractTweets(payload);
     
+    // Memory Cache for Passive Liking
+    tweets.forEach(tweet => {
+      if (!tweetCache.find(t => t.id === tweet.id)) {
+        tweetCache.unshift(tweet);
+      }
+    });
+    // Keep cache at max 300 items to prevent memory bloat
+    if (tweetCache.length > 300) {
+      tweetCache = tweetCache.slice(0, 300);
+    }
+    
+    
     if (tweets.length > 0) {
       console.log(`FinanceBot: Captured ${tweets.length} tweets from stream (${dataType}).`);
       processAndSend(tweets, dataType);
+    }
+  } else if (request.type === 'LIKE_INTERCEPTED') {
+    const { tweetId } = request;
+    console.log(`FinanceBot: Intercepted LIKE for tweet_id ${tweetId}`);
+    
+    // Search cache
+    const cachedTweet = tweetCache.find(t => t.id === tweetId);
+    if (cachedTweet) {
+      console.log(`FinanceBot: Found liked tweet in cache! Syncing to liked_tweets...`);
+      processAndSend([cachedTweet], 'like');
+      addLog('Manual-Liked', `Instantly synced liked tweet`, cachedTweet.url);
+    } else {
+      console.warn(`FinanceBot: Liked tweet ${tweetId} not found in memory cache. User might need to scroll to load it.`);
+      addLog('Dropped', `Liked tweet not in memory cache`, `ID: ${tweetId}`);
     }
   } else if (request.type === 'MANUAL_SCRAPE') {
     scrapeCurrentTab(request.tab, false, sendResponse);
