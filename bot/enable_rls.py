@@ -1,25 +1,16 @@
 import asyncio
 import os
-from sqlalchemy.ext.asyncio import create_async_engine
-from dotenv import load_dotenv
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from sqlalchemy import text
+from dotenv import load_dotenv
+from bot.db.database import engine
 
 load_dotenv()
 
 async def enable_rls():
-    db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        print("Error: DATABASE_URL not found.")
-        return
-
-    # Ensure async driver is used
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif db_url.startswith("postgresql://"):
-        db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-    engine = create_async_engine(db_url)
-    
     # List of all tables from models.py
     tables = [
         "transactions",
