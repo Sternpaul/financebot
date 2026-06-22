@@ -1,6 +1,11 @@
-chrome.action.onClicked.addListener(() => {
-  chrome.runtime.openOptionsPage();
-});
+function addLog(action, details, url = '') {
+  chrome.storage.local.get(['scrapeLogs'], (data) => {
+    let logs = data.scrapeLogs || [];
+    logs.unshift({ timestamp: new Date().toISOString(), action, details, url });
+    if (logs.length > 50) logs = logs.slice(0, 50);
+    chrome.storage.local.set({ scrapeLogs: logs });
+  });
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'PROCESS_TWEETS') {
@@ -13,6 +18,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log(`FinanceBot: Captured ${tweets.length} tweets from stream (${dataType}).`);
       processAndSend(tweets, dataType);
     }
+  } else if (request.type === 'MANUAL_SCRAPE') {
+    scrapeCurrentTab(request.tab, false, sendResponse);
+    return true; // Keep message channel open for async response
   }
 });
 
@@ -39,9 +47,14 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 
-async function scrapeCurrentTab(tab, isAuto = false) {
-  if (!tab || !tab.id || !tab.url) return;
+async function scrapeCurrentTab(tab, isAuto = false, sendResponse = null) {
+  if (!tab || !tab.id || !tab.url) {
+    if (sendResponse) sendResponse({ success: false });
+    return;
+  }
   if (tab.url.includes("chrome://") || tab.url.includes("x.com") || tab.url.includes("twitter.com")) {
+    if (!isAuto) addLog('Dropped', 'Cannot scrape internal/Twitter pages', tab.url);
+    if (sendResponse) sendResponse({ success: false });
     return; // Don't scrape Twitter or internal pages with this script
   }
   
@@ -55,9 +68,17 @@ async function scrapeCurrentTab(tab, isAuto = false) {
       if (data.content && data.content.length > 100) {
         const targetTable = isAuto ? 'raw_webcontent' : 'curated_webcontent';
         saveWebContent(data, targetTable);
-      } else if (!isAuto) {
-        console.warn("FinanceBot: Failed to find enough content to scrape manually.");
+        addLog(isAuto ? 'Auto-Scraped' : 'Manual-Scraped', `Extracted ${data.content.length} chars`, tab.url);
+        if (sendResponse) sendResponse({ success: true });
+      } else {
+        if (!isAuto) {
+          console.warn("FinanceBot: Failed to find enough content to scrape manually.");
+          addLog('Dropped', 'Not enough text content found', tab.url);
+        }
+        if (sendResponse) sendResponse({ success: false });
       }
+    } else {
+      if (sendResponse) sendResponse({ success: false });
     }
   });
 }
@@ -166,6 +187,7 @@ async function processAndSend(tweets, dataType = 'timeline') {
 
     if (filteredTweets.length === 0) {
       console.log("FinanceBot: All tweets filtered out by blocklists.");
+      addLog('Dropped', `All ${tweets.length} tweets blocked by filters`);
       return;
     }
 
@@ -197,6 +219,7 @@ async function processAndSend(tweets, dataType = 'timeline') {
       
       if (response.ok) {
         console.log(`FinanceBot: Successfully pushed ${filteredTweets.length} tweets to ${tableName}.`);
+        addLog('Tweet-Saved', `Pushed ${filteredTweets.length} tweets to ${tableName}`);
       } else {
         const errText = await response.text();
         console.error("FinanceBot: Failed to push to Supabase", response.status, errText);
