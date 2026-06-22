@@ -39,16 +39,17 @@ docker compose exec -T worker python bot/create_v1_2_tables.py
 4. Click **Load unpacked** (top left) and select the `financebot/extension` folder.
 
 ### 3. Configuration
-Click the FinanceBot puzzle icon in your Chrome toolbar. This will open the **Settings Page** in a new tab.
+Click the FinanceBot puzzle icon in your Chrome toolbar. This will open a quick-action popup where you can manually save the current page. From there, click **⚙️ Open Settings** to configure the extension.
 - **Supabase URL & Key:** Enter your Supabase REST API credentials.
 - **Keyword Blocklist:** Ignore noisy topics. Enter comma-separated words (e.g. `football, messi, ronaldo`). Any tweet containing these words will be dropped instantly.
 - **Username Blocklist:** Ignore noisy accounts (e.g. `dogecoin_fan, cryptospambot`).
 - **Omni-Scraper Domain Allowlist:** Add domains (e.g., `bloomberg.com, wsj.com`) that the extension should automatically scrape every time you visit a page.
+- **Activity Logs:** At the bottom of the settings page, you can view a real-time log of every page and tweet the extension processed or dropped, giving you full transparency.
 
-### 4. Advanced Features (v1.2)
+### 4. Advanced Features (v1.2.1)
 - **Passive Liked Tweets**: Every time you ❤️ a tweet, or scroll through your "Likes" tab, the extension silently pushes it to the `liked_tweets` table.
 - **Auto URL Unshortening**: The extension automatically resolves annoying `t.co` links to their real destinations.
-- **1-Click Web Scraping**: When reading a news article on an external site, press **Alt+S** (or Command+S on Mac), or Right-Click the page and hit `FinanceBot: Scrape Article`. The extension will extract the clean text and push it to the `curated_webcontent` table!
+- **1-Click Web Scraping**: When reading a news article on an external site, press **Alt+S** (or Command+S on Mac), click the **Save Current Page** button in the extension popup, or Right-Click the page and hit `FinanceBot: Scrape Article`. The extension will extract the clean text and push it to the `curated_webcontent` table!
 - **Omni-Scraper (Auto)**: For any domains listed in your Domain Allowlist, the extension will *automatically* scrape the page in the background and save it to the `raw_webcontent` table.
 - **Smart DB Cleanup**: A background cron job automatically monitors your Supabase database size. If it exceeds 400 MB, it dynamically deletes the oldest 10% of raw tweets and raw web content to ensure you never run out of space.
 
