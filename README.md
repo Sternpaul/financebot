@@ -41,6 +41,7 @@ docker compose exec -T worker python bot/create_v1_2_tables.py
 ### 3. Configuration
 Click the FinanceBot puzzle icon in your Chrome toolbar. This will open a quick-action popup where you can manually save the current page. From there, click **⚙️ Open Settings** to configure the extension.
 - **Supabase URL & Key:** Enter your Supabase REST API credentials.
+- **Dashboard Password (Security):** To protect your personal database from public access, the database uses "Secret Header Authentication". Enter your master `DASHBOARD_PASSWORD` here. The extension will securely attach this password to every request.
 - **Keyword Blocklist:** Ignore noisy topics. Enter comma-separated words (e.g. `football, messi, ronaldo`). Any tweet containing these words will be dropped instantly.
 - **Username Blocklist:** Ignore noisy accounts (e.g. `dogecoin_fan, cryptospambot`).
 - **Omni-Scraper Domain Allowlist:** Add domains (e.g., `bloomberg.com, wsj.com`) that the extension should automatically scrape every time you visit a page.
@@ -83,7 +84,14 @@ Click the FinanceBot puzzle icon in your Chrome toolbar. This will open a quick-
 If you are deploying the Next.js Dashboard to Vercel, you must set the following environment variables in your Vercel project settings:
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL (e.g. `https://your-project.supabase.co`)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Public Key
-*(Note: The user requested NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, but standard Supabase terminology uses ANON_KEY. Set whichever your frontend configuration requires).*
+- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key (Required to securely bypass RLS on the server)
+- `DASHBOARD_PASSWORD`: Your master password. The dashboard will require this password to log in.
+
+### 🔒 Security & Row Level Security (RLS)
+The database is secured using a hybrid architecture for single-user personal dashboards:
+1. **Next.js Dashboard:** Client Components have been refactored to use Server Actions. The server securely connects using the `SUPABASE_SERVICE_ROLE_KEY`, ensuring no secrets are exposed to the browser.
+2. **Chrome Extension:** Connects via the REST API using "Secret Header Authentication". The extension attaches `x-dashboard-password` to HTTP headers.
+3. **Database RLS:** The `enable_rls.py` migration script locks down all tables with a strict policy: `USING (current_setting('request.headers')::json->>'x-dashboard-password' = 'YOUR_SECRET')`.
 
 ### 🤖 Backend Stack Deployment (Docker)
 1. **Enable pgvector on Supabase (CRITICAL):**

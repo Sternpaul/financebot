@@ -12,6 +12,11 @@ load_dotenv()
 from bot.db.database import engine
 
 async def enable_rls():
+    password = os.getenv("DASHBOARD_PASSWORD")
+    if not password:
+        print("Error: DASHBOARD_PASSWORD must be set in .env to secure the database.")
+        return
+
     # List of all tables from models.py
     tables = [
         "transactions",
@@ -39,13 +44,12 @@ async def enable_rls():
                 # Drop policy if exists to allow re-runs
                 await conn.execute(text(f"DROP POLICY IF EXISTS \"Allow All\" ON public.{table};"))
                 
-                # Create a permissive "Allow All" policy
-                # Since this is a personal, single-user dashboard without auth logins,
-                # we grant full access to 'anon' and 'authenticated' roles to suppress 
-                # the Supabase security warning while keeping the extension fully functional.
-                await conn.execute(text(f"CREATE POLICY \"Allow All\" ON public.{table} FOR ALL USING (true) WITH CHECK (true);"))
+                # Create a strict Secret Header policy
+                # This mathematically guarantees that NO ONE can read or write data unless they
+                # provide the exact DASHBOARD_PASSWORD in their request headers.
+                await conn.execute(text(f"CREATE POLICY \"Secret Header\" ON public.{table} FOR ALL USING (current_setting('request.headers', true)::json->>'x-dashboard-password' = '{password}') WITH CHECK (current_setting('request.headers', true)::json->>'x-dashboard-password' = '{password}');"))
                 
-                print(f"Enabled RLS and added 'Allow All' policy for {table}")
+                print(f"Enabled RLS and added 'Secret Header' policy for {table}")
             except Exception as e:
                 print(f"Error on {table}: {e}")
                 

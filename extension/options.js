@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.keywordBlocklist) keywordInput.value = data.keywordBlocklist;
     if (data.usernameBlocklist) usernameInput.value = data.usernameBlocklist;
     if (data.domainAllowlist) domainInput.value = data.domainAllowlist;
-    
+
     renderLogs(data.scrapeLogs || []);
   });
 
@@ -25,14 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
       logsList.innerHTML = '<div style="color: #8899a6; font-size: 12px;">No activity yet.</div>';
       return;
     }
-    
+
     logs.forEach(log => {
       const d = new Date(log.timestamp);
       const timeStr = `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-      
+
       const div = document.createElement('div');
       div.className = 'log-item';
-      
+
       div.innerHTML = `
         <div>
           <span class="log-time">[${timeStr}]</span>

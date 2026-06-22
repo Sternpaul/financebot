@@ -185,13 +185,13 @@ function extractTweets(obj, results = []) {
 }
 
 async function processAndSend(tweets, dataType = 'timeline') {
-  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey', 'keywordBlocklist', 'usernameBlocklist'], async (config) => {
+  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey', 'dashboardPassword', 'keywordBlocklist', 'usernameBlocklist'], async (config) => {
     if (!config.supabaseUrl || !config.supabasePublishableKey) {
       console.warn("FinanceBot: Supabase credentials not configured in extension popup.");
       return;
     }
 
-    const { supabaseUrl, supabasePublishableKey, keywordBlocklist, usernameBlocklist } = config;
+    const { supabaseUrl, supabasePublishableKey, dashboardPassword, keywordBlocklist, usernameBlocklist } = config;
     
     // Parse filters
     const keywords = (keywordBlocklist || "").toLowerCase().split(',').map(s => s.trim()).filter(s => s);
@@ -239,6 +239,7 @@ async function processAndSend(tweets, dataType = 'timeline') {
         headers: {
           'apikey': supabasePublishableKey,
           'Authorization': `Bearer ${supabasePublishableKey}`,
+          'x-dashboard-password': dashboardPassword || '',
           'Content-Type': 'application/json',
           'Prefer': 'resolution=ignore-duplicates' // Prevent duplicate inserts
         },
@@ -259,10 +260,10 @@ async function processAndSend(tweets, dataType = 'timeline') {
 }
 
 async function saveWebContent(data, tableName) {
-  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey'], async (config) => {
+  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey', 'dashboardPassword'], async (config) => {
     if (!config.supabaseUrl || !config.supabasePublishableKey) return;
     
-    const { supabaseUrl, supabasePublishableKey } = config;
+    const { supabaseUrl, supabasePublishableKey, dashboardPassword } = config;
     const endpoint = `${supabaseUrl}/rest/v1/${tableName}`;
 
     const payload = {
@@ -279,6 +280,7 @@ async function saveWebContent(data, tableName) {
         headers: {
           'apikey': supabasePublishableKey,
           'Authorization': `Bearer ${supabasePublishableKey}`,
+          'x-dashboard-password': dashboardPassword || '',
           'Content-Type': 'application/json',
           'Prefer': 'resolution=ignore-duplicates'
         },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { fetchSourcesData, toggleSource, toggleRegion, addSource, deleteSource } from "@/app/actions/sources";
 import styles from "../app/page.module.css";
 import IngestionLogs from "./IngestionLogs";
 
@@ -23,8 +23,7 @@ export default function SourcesManager() {
   const [newHandle, setNewHandle] = useState("");
 
   const fetchSources = async () => {
-    const { data: sourcesData } = await supabase.from("content_sources").select("*").order("id", { ascending: true });
-    const { data: watchlistData } = await supabase.from("watchlist").select("*").order("id", { ascending: true });
+    const { sourcesData, watchlistData } = await fetchSourcesData();
     
     let combined: ContentSource[] = [];
     if (sourcesData) combined = [...combined, ...sourcesData];
@@ -49,48 +48,25 @@ export default function SourcesManager() {
   }, []);
 
   const handleToggle = async (id: any, currentStatus: boolean, isWatchlist: boolean, dbId?: number) => {
-    if (isWatchlist && dbId) {
-       await supabase.from("watchlist").update({ alert_news: !currentStatus }).eq("id", dbId);
-    } else {
-       await supabase.from("content_sources").update({ is_active: !currentStatus }).eq("id", id);
-    }
+    await toggleSource(id, currentStatus, isWatchlist, dbId);
     fetchSources();
   };
 
   const handleRegionToggle = async (regionSources: ContentSource[], targetStatus: boolean) => {
-    for (const source of regionSources) {
-      if (source.is_active !== targetStatus) {
-        await supabase.from("content_sources").update({ is_active: targetStatus }).eq("id", source.id);
-      }
-    }
+    await toggleRegion(regionSources, targetStatus);
     fetchSources();
   };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newHandle) return;
-    
-    if (newPlatform === 'yfinance') {
-        const { data } = await supabase.from("watchlist").select("*").eq("ticker", newHandle.toUpperCase()).single();
-        if (data) {
-            await supabase.from("watchlist").update({ alert_news: true }).eq("id", data.id);
-        } else {
-            await supabase.from("watchlist").insert([{ ticker: newHandle.toUpperCase(), alert_price: true, alert_news: true }]);
-        }
-    } else {
-        await supabase.from("content_sources").insert([{ platform: newPlatform, handle: newHandle, is_active: true, is_core: false }]);
-    }
+    await addSource(newPlatform, newHandle);
     
     setNewHandle("");
     fetchSources();
   };
 
   const handleDelete = async (id: any, isWatchlist: boolean, dbId?: number) => {
-    if (isWatchlist && dbId) {
-        await supabase.from("watchlist").update({ alert_news: false }).eq("id", dbId);
-    } else {
-        await supabase.from("content_sources").delete().eq("id", id);
-    }
+    await deleteSource(id, isWatchlist, dbId);
     fetchSources();
   };
 
