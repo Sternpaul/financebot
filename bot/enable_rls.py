@@ -32,7 +32,9 @@ async def enable_rls():
         "raw_tweets",
         "liked_tweets",
         "curated_webcontent",
-        "raw_webcontent"
+        "raw_webcontent",
+        "alembic_version",
+        "web_content"
     ]
     
     async with engine.begin() as conn:
@@ -43,11 +45,11 @@ async def enable_rls():
                 
                 # Drop policy if exists to allow re-runs
                 await conn.execute(text(f"DROP POLICY IF EXISTS \"Allow All\" ON public.{table};"))
+                await conn.execute(text(f"DROP POLICY IF EXISTS \"Secret Header\" ON public.{table};"))
                 
-                # Create a strict Secret Header policy
-                # This mathematically guarantees that NO ONE can read or write data unless they
-                # provide the exact DASHBOARD_PASSWORD in their request headers.
-                await conn.execute(text(f"CREATE POLICY \"Secret Header\" ON public.{table} FOR ALL USING (current_setting('request.headers', true)::json->>'x-dashboard-password' = '{password}') WITH CHECK (current_setting('request.headers', true)::json->>'x-dashboard-password' = '{password}');"))
+                # Create a strict Secret Header policy, wrapped in a (select) subquery to 
+                # prevent PostgreSQL from re-evaluating the JSON parse on every row (optimizing performance).
+                await conn.execute(text(f"CREATE POLICY \"Secret Header\" ON public.{table} FOR ALL USING ((select current_setting('request.headers', true)::json->>'x-dashboard-password') = '{password}') WITH CHECK ((select current_setting('request.headers', true)::json->>'x-dashboard-password') = '{password}');"))
                 
                 print(f"Enabled RLS and added 'Secret Header' policy for {table}")
             except Exception as e:
