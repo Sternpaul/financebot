@@ -16,6 +16,7 @@ window.addEventListener('message', function(event) {
         chrome.runtime.sendMessage({
             type: 'PROCESS_TWEETS',
             url: event.data.url,
+            dataType: event.data.dataType,
             payload: event.data.payload
         });
     }
