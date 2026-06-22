@@ -1,15 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "FinanceBot Twitter Scraper",
-  "version": "1.0",
-  "description": "Locally intercepts Twitter feeds and pushes to Supabase",
+  "name": "FinanceBot Scraper",
+  "version": "1.1",
+  "description": "Scrapes Twitter timelines, liked tweets, and external articles directly into Supabase.",
   "permissions": [
     "storage",
-    "webRequest"
+    "contextMenus",
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
-    "*://*.twitter.com/*",
-    "*://*.x.com/*"
+    "<all_urls>"
   ],
   "icons": {
     "128": "icon128.png"
@@ -18,7 +19,8 @@
     "default_popup": "popup.html"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -27,6 +29,15 @@
       "run_at": "document_start"
     }
   ],
+  "commands": {
+    "scrape-article": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Command+S"
+      },
+      "description": "Scrape the current article to FinanceBot"
+    }
+  },
   "web_accessible_resources": [
     {
       "resources": ["inject.js"],

@@ -16,11 +16,14 @@
                                    this._url.includes('HomeLatestTimeline') || 
                                    this._url.includes('ListLatestTweetsTimeline') ||
                                    this._url.includes('UserTweets');
-                if (isTimeline) {
+                const isLike = this._url.includes('FavoriteTweet') || this._url.includes('Likes');
+                
+                if (isTimeline || isLike) {
                     try {
                         const data = JSON.parse(this.responseText);
                         window.postMessage({
                             type: 'TWITTER_DATA_INTERCEPTED',
+                            dataType: isLike ? 'like' : 'timeline',
                             url: this._url,
                             payload: data
                         }, '*');
@@ -46,13 +49,15 @@
                                    url.includes('HomeLatestTimeline') || 
                                    url.includes('ListLatestTweetsTimeline') ||
                                    url.includes('UserTweets');
+                const isLike = url.includes('FavoriteTweet') || url.includes('Likes');
                 
-                if (isTimeline) {
+                if (isTimeline || isLike) {
                     // Clone the response so we don't break the original stream X consumes
                     const clone = response.clone();
                     clone.json().then(data => {
                         window.postMessage({
                             type: 'TWITTER_DATA_INTERCEPTED',
+                            dataType: isLike ? 'like' : 'timeline',
                             url: url,
                             payload: data
                         }, '*');

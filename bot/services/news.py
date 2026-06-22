@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from dateutil import parser
 from sqlalchemy import select, delete
 from bot.db.database import get_session
-from bot.db.models import ContentSource, NewsArticle, Watchlist
+from bot.db.models import ContentSource, NewsArticle, Watchlist, RawTweet, LikedTweet
 from bot.config import get_worker_config
 import re
 
@@ -33,6 +33,18 @@ async def cleanup_old_articles():
         await session.commit()
         if result.rowcount > 0:
             logger.info(f"Cleaned up {result.rowcount} articles older than 365 days.")
+
+async def cleanup_old_raw_tweets():
+    """Deletes raw_tweets and liked_tweets older than 30 days to save DB space."""
+    async with get_session() as session:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        stmt_raw = delete(RawTweet).where(RawTweet.posted_at < cutoff)
+        res_raw = await session.execute(stmt_raw)
+        stmt_liked = delete(LikedTweet).where(LikedTweet.posted_at < cutoff)
+        res_liked = await session.execute(stmt_liked)
+        await session.commit()
+        if res_raw.rowcount > 0 or res_liked.rowcount > 0:
+            logger.info(f"Cleaned up {res_raw.rowcount} raw tweets and {res_liked.rowcount} liked tweets older than 30 days.")
 
 def extract_tickers_aggressively(text: str, active_tickers: list[str]) -> list[str]:
     found = set()
@@ -298,6 +310,8 @@ async def run_news_ingestion():
     try:
         logger.info("Running cleanup_old_articles...")
         await cleanup_old_articles()
+        logger.info("Running cleanup_old_raw_tweets...")
+        await cleanup_old_raw_tweets()
         logger.info("Running ingest_custom_sources...")
         await ingest_custom_sources()
         logger.info("Running ingest_watchlist_news...")
