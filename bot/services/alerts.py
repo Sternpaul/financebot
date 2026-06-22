@@ -203,7 +203,7 @@ async def run_technical_alerts_check(redis_client: Redis):
                         "volume_ratio": str(volume_ratio),
                         "threshold_value": str(threshold)
                     }
-                    await redis_client.xadd("alerts", payload)
+                    await redis_client.xadd("alerts", payload, maxlen=10000, approximate=True)
                     logger.info(f"Published {alert_type} alert for {symbol} to Redis.")
 
             # Process Percentage Change

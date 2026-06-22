@@ -28,15 +28,33 @@ export async function addTransaction(type: string, ticker: string | null, shares
 
 // Bulk inserts transactions
 export async function importTransactions(transactionsList: any[]) {
-  const formatted = transactionsList.map(t => ({
-    type: t.type,
-    ticker: t.ticker ? t.ticker.toUpperCase() : null,
-    shares: t.shares,
-    price_per_share: t.price_per_share,
-    date: t.date,
-    account: 'main',
-    currency: 'USD'
-  }));
+  if (!Array.isArray(transactionsList)) {
+    return { success: false, error: 'Invalid input format. Expected an array.' };
+  }
+  
+  if (transactionsList.length > 500) {
+    return { success: false, error: 'Too many transactions to import at once. Maximum is 500.' };
+  }
+
+  const formatted = [];
+  for (const t of transactionsList) {
+    if (!t.type || typeof t.type !== 'string' || !['BUY', 'SELL', 'CASH_ADD', 'CASH_REMOVE', 'DIVIDEND'].includes(t.type)) {
+      return { success: false, error: 'Invalid transaction type in list.' };
+    }
+    if (t.ticker && typeof t.ticker !== 'string') return { success: false, error: 'Invalid ticker format.' };
+    if (t.shares !== undefined && t.shares !== null && typeof t.shares !== 'number') return { success: false, error: 'Invalid shares format.' };
+    if (t.price_per_share !== undefined && t.price_per_share !== null && typeof t.price_per_share !== 'number') return { success: false, error: 'Invalid price format.' };
+    
+    formatted.push({
+      type: t.type,
+      ticker: t.ticker ? t.ticker.toUpperCase() : null,
+      shares: t.shares || null,
+      price_per_share: t.price_per_share || null,
+      date: t.date || new Date().toISOString(),
+      account: 'main',
+      currency: 'USD'
+    });
+  }
 
   const { error } = await supabaseAdmin.from('transactions').insert(formatted);
   
@@ -123,7 +141,8 @@ export async function searchTickers(query: string) {
   if (!query) return [];
   
   try {
-    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${query}&quotesCount=6`);
+    const encodedQuery = encodeURIComponent(query);
+    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodedQuery}&quotesCount=6`);
     const data = await res.json();
     return data.quotes.map((q: any) => ({
       symbol: q.symbol,
@@ -159,8 +178,9 @@ export async function getHistoricalPrice(ticker: string, dateStr: string) {
     if (['BTC', 'ETH', 'SOL', 'DOGE'].includes(querySym)) {
       querySym = `${querySym}-USD`;
     }
+    const encodedSym = encodeURIComponent(querySym);
 
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${querySym}?period1=${startTs}&period2=${endTs}&interval=1d`, { next: { revalidate: 3600 } });
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodedSym}?period1=${startTs}&period2=${endTs}&interval=1d`, { next: { revalidate: 3600 } });
     const data = await res.json();
     
     const closePrices = data.chart?.result?.[0]?.indicators?.quote?.[0]?.close;

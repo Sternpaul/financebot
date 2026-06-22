@@ -15,7 +15,14 @@ logger = logging.getLogger(__name__)
 
 config = get_worker_config()
 redis: Redis = None
-scheduler = AsyncIOScheduler(timezone=config.timezone)
+scheduler = AsyncIOScheduler(
+    timezone=config.timezone,
+    job_defaults={
+        "coalesce": True,
+        "max_instances": 1,
+        "misfire_grace_time": 60,
+    }
+)
 
 async def run_market_check():
     """Example scheduled job."""
@@ -24,7 +31,8 @@ async def run_market_check():
         # Produce to Redis Stream
         await redis.xadd(
             "alerts",
-            {"ticker": "BTC", "type": "info", "message": "Market check completed."}
+            {"ticker": "BTC", "type": "info", "message": "Market check completed."},
+            maxlen=10000, approximate=True
         )
 
 async def send_morning_report():
@@ -33,7 +41,8 @@ async def send_morning_report():
     if redis:
         await redis.xadd(
             "reports",
-            {"date": "2026-06-07", "content": "The market is looking great today."}
+            {"date": "2026-06-07", "content": "The market is looking great today."},
+            maxlen=10000, approximate=True
         )
 
 async def shutdown(sig=None):

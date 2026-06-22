@@ -7,7 +7,8 @@ export async function searchTickers(query: string) {
   if (!query) return [];
   
   try {
-    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${query}&quotesCount=6`);
+    const encodedQuery = encodeURIComponent(query);
+    const res = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodedQuery}&quotesCount=6`);
     const data = await res.json();
     return data.quotes.map((q: any) => ({
       symbol: q.symbol,
@@ -44,9 +45,31 @@ export async function removeFromWatchlist(id: number) {
 }
 
 export async function updateCustomAlerts(ticker: string, customAlerts: any) {
+  if (!Array.isArray(customAlerts)) {
+    return { success: false, error: 'Custom alerts must be an array' };
+  }
+  
+  if (customAlerts.length > 20) {
+    return { success: false, error: 'Maximum 20 custom alerts allowed' };
+  }
+  
+  const validatedAlerts = [];
+  for (const alert of customAlerts) {
+    if (typeof alert !== 'object' || alert === null) continue;
+    if (typeof alert.name !== 'string' || !alert.name) continue;
+    if (typeof alert.condition !== 'string' || !['above', 'below'].includes(alert.condition)) continue;
+    if (typeof alert.target_price !== 'number' || alert.target_price < 0) continue;
+    
+    validatedAlerts.push({
+      name: alert.name.substring(0, 50),
+      condition: alert.condition,
+      target_price: alert.target_price
+    });
+  }
+
   const { error } = await supabaseAdmin
     .from('watchlist')
-    .update({ custom_alerts: customAlerts })
+    .update({ custom_alerts: validatedAlerts })
     .eq('ticker', ticker.toUpperCase());
     
   if (error) {

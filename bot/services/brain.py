@@ -381,7 +381,7 @@ Format the response as a beautiful Markdown report with the following exact stru
             import redis.asyncio as redis
             from bot.config import get_worker_config
             r = redis.Redis.from_url(get_worker_config().redis_url)
-            await r.xadd("reports", {"title": "🌅 Morning Briefing", "content": report})
+            await r.xadd("reports", {"title": "🌅 Morning Briefing", "content": report}, maxlen=10000, approximate=True)
             await r.aclose()
         else:
             logger.error("Failed to generate morning report.")

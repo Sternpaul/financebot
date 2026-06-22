@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Float, Boolean, JSON, ForeignKey, DateTime, func, Text
+from sqlalchemy import Column, BigInteger, String, Float, Boolean, JSON, ForeignKey, DateTime, func, Text, Numeric
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from pgvector.sqlalchemy import Vector
@@ -11,8 +11,8 @@ class Transaction(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     type = Column(String, nullable=False) # 'BUY', 'SELL', 'CASH_ADD', 'CASH_REMOVE'
     ticker = Column(String) # Nullable for cash transfers
-    shares = Column(Float)
-    price_per_share = Column(Float)
+    shares = Column(Numeric(precision=18, scale=8))
+    price_per_share = Column(Numeric(precision=18, scale=8))
     currency = Column(String, default='USD')
     account = Column(String, default='main')
     date = Column(DateTime(timezone=True), nullable=False)
@@ -66,7 +66,7 @@ class TechnicalAlert(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     ticker = Column(String, nullable=False)
     alert_type = Column(String, nullable=False)
-    price_at_alert = Column(Float, nullable=False)
+    price_at_alert = Column(Numeric(precision=18, scale=4), nullable=False)
     pct_change = Column(Float, nullable=False)
     volume_ratio = Column(Float, nullable=False)
     triggered_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -124,9 +124,9 @@ class AlertPerformance(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     alert_id = Column(BigInteger, ForeignKey('technical_alerts.id', ondelete='CASCADE'), nullable=False, unique=True)
-    forward_3d = Column(Float, nullable=True)
-    forward_7d = Column(Float, nullable=True)
-    forward_30d = Column(Float, nullable=True)
+    forward_3d = Column(Numeric(precision=10, scale=4), nullable=True)
+    forward_7d = Column(Numeric(precision=10, scale=4), nullable=True)
+    forward_30d = Column(Numeric(precision=10, scale=4), nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Optional back-reference if needed
