@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const urlInput = document.getElementById('supabaseUrl');
   const keyInput = document.getElementById('supabasePublishableKey');
+  const passwordInput = document.getElementById('dashboardPassword');
   const keywordInput = document.getElementById('keywordBlocklist');
   const usernameInput = document.getElementById('usernameBlocklist');
   const domainInput = document.getElementById('domainAllowlist');
@@ -9,9 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const logsList = document.getElementById('logsList');
   const clearLogsBtn = document.getElementById('clearLogsBtn');
 
-  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey', 'keywordBlocklist', 'usernameBlocklist', 'domainAllowlist', 'scrapeLogs'], (data) => {
+  chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey', 'dashboardPassword', 'keywordBlocklist', 'usernameBlocklist', 'domainAllowlist', 'scrapeLogs'], (data) => {
     if (data.supabaseUrl) urlInput.value = data.supabaseUrl;
     if (data.supabasePublishableKey) keyInput.value = data.supabasePublishableKey;
+    if (data.dashboardPassword) passwordInput.value = data.dashboardPassword;
     if (data.keywordBlocklist) keywordInput.value = data.keywordBlocklist;
     if (data.usernameBlocklist) usernameInput.value = data.usernameBlocklist;
     if (data.domainAllowlist) domainInput.value = data.domainAllowlist;
