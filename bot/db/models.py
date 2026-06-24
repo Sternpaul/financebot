@@ -177,3 +177,28 @@ class RawWebContent(Base):
     source = Column(String, default='chrome_extension_auto')
     is_processed = Column(Boolean, default=False, server_default='false')
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class PodcastEpisode(Base):
+    __tablename__ = 'podcast_episodes'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    show_name = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    video_id = Column(String, nullable=False, unique=True)
+    published_at = Column(DateTime(timezone=True), nullable=False)
+    is_processed = Column(Boolean, default=False, server_default='false')
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class PodcastTrade(Base):
+    __tablename__ = 'podcast_trades'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    episode_id = Column(BigInteger, ForeignKey('podcast_episodes.id', ondelete='CASCADE'), nullable=False)
+    ticker = Column(String, nullable=False)
+    trade_type = Column(String, nullable=False) # 'LONG', 'SHORT', 'NEUTRAL'
+    thesis = Column(Text, nullable=False)
+    speaker = Column(String, nullable=True)
+    quote = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    episode = relationship("PodcastEpisode", backref="trades")

@@ -38,6 +38,9 @@ export default function Navbar() {
           <Link href="/watchlist" className={`${styles.navItem} ${pathname.startsWith('/watchlist') ? styles.active : ''}`}>
             Watchlist
           </Link>
+          <Link href="/podcasts" className={`${styles.navItem} ${pathname === '/podcasts' ? styles.active : ''}`}>
+            Podcasts
+          </Link>
           <Link href="/portfolio" className={`${styles.navItem} ${pathname === '/portfolio' ? styles.active : ''}`}>
             Portfolio
           </Link>

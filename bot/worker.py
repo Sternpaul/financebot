@@ -98,6 +98,10 @@ async def main():
     
     # Daily Compaction
     scheduler.add_job(run_daily_compaction, 'interval', hours=config.cron_brain_compaction_hours)
+
+    # Podcast Sync
+    from bot.services.podcast import sync_podcasts
+    scheduler.add_job(sync_podcasts, 'interval', hours=4)
     
     # Morning report scheduling
     report_time = config.morning_report_time.split(":")
