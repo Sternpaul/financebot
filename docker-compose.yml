@@ -12,7 +12,8 @@ services:
       - ./alembic.ini:/app/alembic.ini
       - telethon-session:/app/sessions
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - investment-net
     deploy:
@@ -31,8 +32,10 @@ services:
     volumes:
       - telethon-session:/app/sessions
     depends_on:
-      - redis
-      - rsshub
+      redis:
+        condition: service_healthy
+      rsshub:
+        condition: service_started
     networks:
       - investment-net
     deploy:
@@ -50,7 +53,8 @@ services:
       - TWITTER_PASSWORD=${TWITTER_PASSWORD:-}
       # - PUPPETEER_WS_ENDPOINT=ws://browserless:3000 # Add if adding browserless sidecar later
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - investment-net
     deploy:
@@ -59,9 +63,14 @@ services:
           memory: 512M
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     restart: unless-stopped
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     volumes:
       - redis-data:/data
     networks:

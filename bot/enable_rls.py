@@ -49,7 +49,12 @@ async def enable_rls():
                 
                 # Create a strict Secret Header policy, wrapped in a (select) subquery to 
                 # prevent PostgreSQL from re-evaluating the JSON parse on every row (optimizing performance).
-                await conn.execute(text(f"CREATE POLICY \"Secret Header\" ON public.{table} FOR ALL USING ((select current_setting('request.headers', true)::json->>'x-dashboard-password') = '{password}') WITH CHECK ((select current_setting('request.headers', true)::json->>'x-dashboard-password') = '{password}');"))
+                query = f"""
+                    CREATE POLICY "Secret Header" ON public.{table} FOR ALL 
+                    USING ((select current_setting('request.headers', true)::json->>'x-dashboard-password') = :pwd) 
+                    WITH CHECK ((select current_setting('request.headers', true)::json->>'x-dashboard-password') = :pwd);
+                """
+                await conn.execute(text(query), {"pwd": password})
                 
                 print(f"Enabled RLS and added 'Secret Header' policy for {table}")
             except Exception as e:
