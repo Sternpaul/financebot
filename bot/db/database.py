@@ -7,39 +7,45 @@ config = get_bot_config()
 
 # Convert standard postgresql:// to postgresql+asyncpg://
 db_url = config.supabase_url
-import uuid
 
-if db_url.startswith("postgresql://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+try:
+    import uuid
 
-import socket
-from urllib.parse import urlparse, urlunparse
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Remove URL-based statement cache to prevent asyncpg string parsing TypeError
+    import socket
+    from urllib.parse import urlparse, urlunparse
 
-# Force IPv4 resolution to prevent Docker/asyncio from randomly attempting IPv6 and crashing with Errno 101
-parsed = urlparse(db_url)
+    # Remove URL-based statement cache to prevent asyncpg string parsing TypeError
 
-# Bypass PgBouncer (6543) by connecting directly to the database port (5432)
-# This prevents the DuplicatePreparedStatementError when asyncpg introspects the DB
-if parsed.port == 6543:
-    netloc = parsed.netloc.replace(":6543", ":5432")
-    parsed = parsed._replace(netloc=netloc)
+    # Force IPv4 resolution to prevent Docker/asyncio from randomly attempting IPv6 and crashing with Errno 101
+    parsed = urlparse(db_url)
 
-# STRIP any query parameters that might have been hardcoded in the .env string to prevent asyncpg crashes!
-parsed = parsed._replace(query="")
-db_url = urlunparse(parsed)
-if parsed.hostname:
-    try:
-        # Resolve specifically for AF_INET (IPv4)
-        addr_info = socket.getaddrinfo(parsed.hostname, parsed.port, family=socket.AF_INET)
-        if addr_info:
-            ipv4 = addr_info[0][4][0]
-            # Replace hostname with resolved IPv4 IP while keeping port/credentials intact
-            netloc = parsed.netloc.replace(parsed.hostname, ipv4)
-            db_url = urlunparse(parsed._replace(netloc=netloc))
-    except Exception as e:
-        print(f"Warning: Failed to resolve IPv4 for {parsed.hostname}: {e}")
+    # Bypass PgBouncer (6543) by connecting directly to the database port (5432)
+    # This prevents the DuplicatePreparedStatementError when asyncpg introspects the DB
+    if parsed.port == 6543:
+        netloc = parsed.netloc.replace(":6543", ":5432")
+        parsed = parsed._replace(netloc=netloc)
+
+    # STRIP any query parameters that might have been hardcoded in the .env string to prevent asyncpg crashes!
+    parsed = parsed._replace(query="")
+    db_url = urlunparse(parsed)
+    if parsed.hostname:
+        try:
+            # Resolve specifically for AF_INET (IPv4)
+            addr_info = socket.getaddrinfo(parsed.hostname, parsed.port, family=socket.AF_INET)
+            if addr_info:
+                ipv4 = addr_info[0][4][0]
+                # Replace hostname with resolved IPv4 IP while keeping port/credentials intact
+                netloc = parsed.netloc.replace(parsed.hostname, ipv4)
+                db_url = urlunparse(parsed._replace(netloc=netloc))
+        except Exception:
+            # Intentionally suppress details to avoid leaking connection string in logs
+            print("Warning: Failed to resolve IPv4 for database host. Using default resolution.")
+except Exception:
+    # Catch-all to prevent the full connection string (containing password) from appearing in stack traces
+    raise RuntimeError("Failed to initialize database connection. Check SUPABASE_URL in your .env file.")
 
 # Create the async engine
 engine = create_async_engine(

@@ -16,9 +16,8 @@ COPY bot/ bot/
 COPY alembic.ini .
 COPY alembic/ alembic/
 
-# Copy all root-level utility scripts (login, reset, test, etc.)
-COPY *.py .
-
+# Copy only production-needed root scripts (exclude dev utilities like login_telegram, reset_alembic, test_morning_report)
+COPY enable_rls.py .
 # Create sessions dir and set ownership so named volume inherits it
 RUN mkdir -p /app/sessions
 RUN useradd -m botuser && chown -R botuser /app
