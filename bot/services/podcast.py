@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from time import mktime
 from sqlalchemy import select
-from youtube_transcript_api import YouTubeTranscriptApi
+
 import feedparser
 
 from bot.db.database import AsyncSessionLocal
