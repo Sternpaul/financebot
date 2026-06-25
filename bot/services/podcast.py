@@ -48,10 +48,11 @@ async def get_transcript(video_id: str) -> str | None:
         try:
             # We don't even need cookies on a residential IP! 
             # This API is 100x lighter and faster than yt-dlp.
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            api = YouTubeTranscriptApi()
+            transcript = api.fetch(video_id)
             
             # Combine all text blocks
-            lines = [t['text'].replace('\n', ' ').strip() for t in transcript_list if t['text']]
+            lines = [t.text.replace('\n', ' ').replace('\xa0', ' ').strip() for t in transcript if t.text]
             return " ".join(lines)
             
         except Exception as e:
