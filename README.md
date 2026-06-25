@@ -59,15 +59,25 @@ Click the FinanceBot puzzle icon in your Chrome toolbar. This will open a quick-
 ### 5. Custom Ingestion Feeds
 Users can add and manage specific sources via the dashboard:
 
-#### YouTube Podcasts Integration
+#### YouTube Podcasts Integration (Decoupled Architecture)
+To bypass aggressive YouTube datacenter IP bans, the podcast ingestion pipeline is split into two parts:
+1. **Cloud Worker**: Polls the RSS feeds and detects new episodes, saving them to the database as pending.
+2. **Local Transcript Worker**: A dedicated lightweight container you run on your local residential IP (e.g., your personal PC or local Debian server). 
+
+**How to configure a new channel:**
 1. Go to **Settings -> System Settings**.
 2. Select **YouTube Channel** from the dropdown.
-3. You can provide the source in three ways:
-   - **Handle**: `@TaikiMaeda` (Smart resolution will automatically find the Channel ID!)
-   - **URL**: `https://www.youtube.com/@TaikiMaeda` or `https://www.youtube.com/channel/UC7B3Y...`
-   - **Raw ID**: `UC7B3Y1yrg4S7mmgoR-NsfxA`
+3. Provide the Handle (`@TaikiMaeda`), URL, or Raw ID.
 
-The backend worker will fetch new videos every 4 hours, pull their transcripts, and use OpenRouter AI to extract structured trades (Long/Short/Neutral) into your dashboard.
+**How to run the Local Transcript Worker:**
+Because Cloud IPs are banned from downloading YouTube subtitles, you must run this worker locally.
+1. Extract your YouTube cookies using a browser extension (like "Get cookies.txt LOCALLY") and save them as `cookies.txt` in the root of the project.
+2. Ensure you have your `.env` file with your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `OPENROUTER_API_KEY` in the same directory.
+3. Spin up the lightweight isolated container:
+```bash
+docker compose -f docker-compose-local.yml up -d
+```
+This worker will silently wake up at 02:00 AM every day, query your cloud database for any pending episodes, download the transcripts seamlessly using your residential IP, pass them through the `openrouter/owl-alpha` AI to extract actionable trades, and sync everything back to your dashboard!
 
 #### Other Sources
 - **Substack Newsletters**: Automatically fetches RSS feeds for requested authors.
