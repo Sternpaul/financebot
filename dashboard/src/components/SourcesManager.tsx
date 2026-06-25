@@ -21,6 +21,7 @@ export default function SourcesManager() {
   const [sources, setSources] = useState<ContentSource[]>([]);
   const [newPlatform, setNewPlatform] = useState("telegram");
   const [newHandle, setNewHandle] = useState("");
+  const [activeSourceTab, setActiveSourceTab] = useState<'social' | 'podcast' | 'watchlist'>('social');
 
   const fetchSources = async () => {
     const { sourcesData, watchlistData } = await fetchSourcesData();
@@ -144,9 +145,56 @@ export default function SourcesManager() {
       </div>
 
       {/* SPECIFIC SOURCES & ALERTS */}
-      <h3 style={{ marginBottom: '1rem', color: 'var(--foreground)' }}>Alpha Feeds & Watchlist News</h3>
+      <h3 style={{ marginBottom: '1rem', color: 'var(--foreground)' }}>Custom Feeds & Alerts</h3>
+      
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button 
+          onClick={() => setActiveSourceTab('social')}
+          style={{ 
+            padding: '8px 16px', 
+            background: activeSourceTab === 'social' ? 'var(--accent-primary)' : 'transparent',
+            color: activeSourceTab === 'social' ? '#fff' : 'var(--text-secondary)',
+            border: '1px solid var(--accent-primary)',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}>
+          Social & News
+        </button>
+        <button 
+          onClick={() => setActiveSourceTab('podcast')}
+          style={{ 
+            padding: '8px 16px', 
+            background: activeSourceTab === 'podcast' ? '#ffcc00' : 'transparent',
+            color: activeSourceTab === 'podcast' ? '#000' : 'var(--text-secondary)',
+            border: '1px solid #ffcc00',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}>
+          YouTube Podcasts
+        </button>
+        <button 
+          onClick={() => setActiveSourceTab('watchlist')}
+          style={{ 
+            padding: '8px 16px', 
+            background: activeSourceTab === 'watchlist' ? '#03dac6' : 'transparent',
+            color: activeSourceTab === 'watchlist' ? '#000' : 'var(--text-secondary)',
+            border: '1px solid #03dac6',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}>
+          Watchlist
+        </button>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {otherSources.map((source: any) => {
+        {otherSources
+          .filter(s => {
+            if (activeSourceTab === 'podcast') return s.platform === 'youtube_podcast';
+            if (activeSourceTab === 'watchlist') return s.platform === 'yfinance';
+            return s.platform === 'telegram' || s.platform === 'substack';
+          })
+          .map((source: any) => {
           const isWatchlist = source.id.toString().startsWith('watchlist_');
           return (
           <div key={source.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
@@ -170,7 +218,11 @@ export default function SourcesManager() {
             </div>
           </div>
         )})}
-        {otherSources.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No specific sources configured yet.</p>}
+        {otherSources.filter(s => {
+            if (activeSourceTab === 'podcast') return s.platform === 'youtube_podcast';
+            if (activeSourceTab === 'watchlist') return s.platform === 'yfinance';
+            return s.platform === 'telegram' || s.platform === 'substack';
+          }).length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No specific sources configured for this tab yet.</p>}
       </div>
       
       <IngestionLogs />
