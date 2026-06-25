@@ -39,14 +39,71 @@ async def fetch_rss_episodes(channel_id: str):
     return episodes
 
 async def get_transcript(video_id: str) -> str | None:
-    """Fetch the auto-generated YouTube transcript"""
+    """Fetch the auto-generated YouTube transcript using yt-dlp to bypass IP blocks"""
     def fetch():
-        try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-            return " ".join([t['text'] for t in transcript_list])
-        except Exception as e:
-            logger.error(f"Failed to get transcript for {video_id}: {e}")
-            return None
+        import yt_dlp
+        import webvtt
+        import os
+        import tempfile
+        
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_tmpl = os.path.join(tmpdir, "%(id)s.%(ext)s")
+            
+            ydl_opts = {
+                'skip_download': True,
+                'writesubtitles': True,
+                'writeautomaticsub': True,
+                'subtitleslangs': ['en'],
+                'subtitlesformat': 'vtt',
+                'outtmpl': out_tmpl,
+                'quiet': True,
+                'no_warnings': True,
+                'cookiefile': '/app/cookies.txt'
+            }
+            
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+            except Exception as e:
+                logger.error(f"yt-dlp failed for {video_id}: {e}")
+                return None
+                
+            # Find the .vtt file
+            vtt_file = None
+            for f in os.listdir(tmpdir):
+                if f.endswith('.vtt'):
+                    vtt_file = os.path.join(tmpdir, f)
+                    break
+                    
+            if not vtt_file:
+                logger.error(f"No .vtt file found for {video_id}")
+                return None
+                
+            try:
+                vtt = webvtt.read(vtt_file)
+                lines = []
+                prev_line = ""
+                for caption in vtt:
+                    # Clean up the text
+                    text = caption.text.replace('\n', ' ').replace('  ', ' ').strip()
+                    # Remove tags like <c> or </c> that yt-dlp sometimes leaves in auto-subs
+                    import re
+                    text = re.sub(r'<[^>]+>', '', text).strip()
+                    
+                    if text and text != prev_line:
+                        # Basic deduplication for rolling captions
+                        if prev_line and text.startswith(prev_line):
+                            lines[-1] = text
+                        else:
+                            lines.append(text)
+                        prev_line = text
+                
+                return " ".join(lines)
+            except Exception as e:
+                logger.error(f"Failed to parse VTT for {video_id}: {e}")
+                return None
             
     return await asyncio.to_thread(fetch)
 
@@ -135,55 +192,13 @@ async def sync_podcasts():
                         show_name=show_name,
                         title=ep_data["title"],
                         video_id=video_id,
-                        published_at=ep_data["published_at"]
+                        published_at=ep_data["published_at"],
+                        is_processed=False
                     )
                     session.add(new_ep)
-                    await session.flush() # Get the new_ep.id
-                    
-                    # 2. Get transcript
-                    transcript = await get_transcript(video_id)
-                    if not transcript:
-                        new_ep.is_processed = True # Mark processed so we don't infinitely retry failed transcripts
-                        await session.commit()
-                        continue
-                    
-                    # 2.5 Save transcript to decoupled table
-                    transcript_record = PodcastTranscript(
-                        video_id=video_id,
-                        transcript_text=transcript
-                    )
-                    session.add(transcript_record)
-                        
-                    # 3. Extract trades
-                    logger.info(f"Extracting trades for {video_id}...")
-                    trades_json = await extract_trades(transcript)
-                    
-                    for trade_data in trades_json:
-                        if not trade_data.get("ticker") or not trade_data.get("trade_type"):
-                            continue
-                            
-                        trade = PodcastTrade(
-                            episode_id=new_ep.id,
-                            ticker=trade_data["ticker"].upper(),
-                            trade_type=trade_data["trade_type"].upper(),
-                            thesis=trade_data.get("thesis", ""),
-                            speaker=trade_data.get("speaker"),
-                            quote=trade_data.get("quote")
-                        )
-                        session.add(trade)
-                        
-                    new_ep.is_processed = True
-                    
-                    # Log success to database
-                    session.add(IngestionLog(
-                        source_platform="youtube_podcast",
-                        source_handle=show_name,
-                        status="SUCCESS",
-                        message=f"Processed episode {video_id} and found {len(trades_json)} trades."
-                    ))
-                    
                     await session.commit()
-                    logger.info(f"Processed episode {video_id} and found {len(trades_json)} trades.")
+                    
+                    logger.info(f"Added {video_id} to database. Waiting for local worker to process transcript.")
                     
     except Exception as e:
         logger.error(f"Podcast sync failed: {e}", exc_info=True)

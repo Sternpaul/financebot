@@ -34,6 +34,7 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
       "connect-src 'self' https://openrouter.ai https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://api.polygon.io https://finnhub.io https://discord.com",
+      "frame-src 'self' https://www.youtube.com",
     ].join('; '),
   },
 ];

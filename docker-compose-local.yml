@@ -1,0 +1,16 @@
+services:
+  local-transcript-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m bot.local_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./cookies.txt:/app/cookies.txt
+    network_mode: "host" # Useful for avoiding nested DNS issues, but bridge is fine too
+    deploy:
+      resources:
+        limits:
+          memory: 1G
