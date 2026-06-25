@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { requireAuth } from '@/lib/auth';
+import { fetchWithFallback } from '@/lib/openrouter';
 
 export async function POST(req: Request) {
   try {
@@ -15,55 +16,29 @@ export async function POST(req: Request) {
       .limit(30);
 
     let contextString = `Recent News & Alpha Feed Context:\n\n`;
-    
+
     if (news && news.length > 0) {
       news.forEach(n => {
-          const tickers = n.tickers_mentioned ? `[Tickers: ${n.tickers_mentioned.join(', ')}] ` : '';
-          contextString += `- [${n.source_platform.toUpperCase()}] ${tickers}${n.title ? n.title + ': ' : ''}${n.content.substring(0, 400)}...\n`;
+        const tickers = n.tickers_mentioned ? `[Tickers: ${n.tickers_mentioned.join(', ')}] ` : '';
+        contextString += `- [${n.source_platform.toUpperCase()}] ${tickers}${n.title ? n.title + ': ' : ''}${n.content.substring(0, 400)}...\n`;
       });
       contextString += "\n";
     }
 
     if (!news?.length) {
-       contextString += "No recent news found in the database. Rely on your general macro knowledge.";
+      contextString += "No recent news found in the database. Rely on your general macro knowledge.";
     }
 
     const systemPrompt = `You are an elite hedge fund analyst. The user has clicked a button asking "What's moving the market right now?"
 Analyze the provided recent news feed (which contains Telegram alpha, Substack reports, and traditional news) and generate a short, punchy, and highly actionable paragraph explaining the primary drivers of market action right now. 
 Focus on specific tickers, macro events, or narratives mentioned in the feed. Do NOT use conversational filler like "Here is the summary" or "Based on the provided text". Just write the summary. You may use markdown for bolding tickers.`;
 
-    const apiKey = process.env.OPENROUTER_API_KEY || process.env.LLM_API_KEY;
-    const model = process.env.LLM_MODEL || 'nex-agi/nex-n2-pro:free';
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY or LLM_API_KEY is not configured.' }, { status: 500 });
-    }
-
     const openRouterMessages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: `${contextString}\n\nWhat is currently moving the market?` }
     ];
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://financebot.local',
-        'X-Title': 'FinanceBot Dashboard',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: openRouterMessages,
-        stream: true // Enable streaming
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('OpenRouter Error:', err);
-      return NextResponse.json({ error: 'Failed to communicate with AI provider.' }, { status: 500 });
-    }
+    const response = await fetchWithFallback(openRouterMessages, true);
 
     // Return the readable stream directly to the client
     return new Response(response.body, {
@@ -76,6 +51,8 @@ Focus on specific tickers, macro events, or narratives mentioned in the feed. Do
 
   } catch (error) {
     console.error('Market Summary API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

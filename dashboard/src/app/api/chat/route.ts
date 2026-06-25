@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { requireAuth } from '@/lib/auth';
+import { fetchWithFallback } from '@/lib/openrouter';
 
 export async function POST(req: Request) {
   try {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     // Fetch context from Supabase to augment the prompt
     // 1. Get portfolio
     const { data: txs } = await supabaseAdmin.from('transactions').select('ticker, shares').not('ticker', 'is', null);
-    
+
     let portfolioString = 'No active portfolio.';
     if (txs && txs.length > 0) {
       const holdings: Record<string, number> = {};
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
       .select('ticker, content')
       .order('created_at', { ascending: false })
       .limit(10);
-      
+
     let knowledgeString = '';
     if (knowledge && knowledge.length > 0) {
       knowledgeString = knowledge.map(k => `[${k.ticker || 'MACRO'}]: ${k.content}`).join('\n');
@@ -73,41 +74,17 @@ Use the provided market knowledge to answer the user's questions accurately. The
       ...messages
     ];
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.LLM_MODEL || 'nex-agi/nex-n2-pro:free';
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY is not configured.' }, { status: 500 });
-    }
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://financebot.local',
-        'X-Title': 'FinanceBot Dashboard',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: openRouterMessages,
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('OpenRouter Error:', err);
-      return NextResponse.json({ error: 'Failed to communicate with AI provider.' }, { status: 500 });
-    }
+    const response = await fetchWithFallback(openRouterMessages, false);
 
     const data = await response.json();
-    return NextResponse.json({ 
-      role: 'assistant', 
-      content: data.choices[0].message.content 
+    return NextResponse.json({
+      role: 'assistant',
+      content: data.choices[0].message.content
     });
 
   } catch (error) {
     console.error('Chat API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

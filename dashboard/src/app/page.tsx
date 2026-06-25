@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import FeedViewer from '@/components/FeedViewer';
+import FeedViewerClient from '@/components/FeedViewerClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,7 @@ export default async function Home() {
         </div>
       )}
 
-      {posts.length > 0 && <FeedViewer posts={posts} />}
+      {posts.length > 0 && <FeedViewerClient posts={posts} />}
     </main>
   );
 }
