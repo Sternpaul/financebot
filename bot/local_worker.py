@@ -44,6 +44,8 @@ async def process_pending_transcripts():
                 transcript = await get_transcript(ep.video_id)
                 if not transcript:
                     logger.warning(f"Failed to get transcript for {ep.video_id}. Will try again next run.")
+                    import random
+                    await asyncio.sleep(random.uniform(15.0, 30.0))
                     # We don't mark it processed so it can retry tomorrow
                     continue
                     
@@ -83,6 +85,12 @@ async def process_pending_transcripts():
                 
                 await session.commit()
                 logger.info(f"Successfully processed {ep.video_id} and found {len(trades_json)} trades.")
+                
+                # IMPORTANT: Be respectful of YouTube's API rate limits to avoid IP bans!
+                import random
+                delay = random.uniform(15.0, 30.0)
+                logger.info(f"Sleeping for {delay:.1f}s before next video...")
+                await asyncio.sleep(delay)
                 
     except Exception as e:
         logger.error(f"Local worker failed: {e}", exc_info=True)
