@@ -3,7 +3,7 @@ pydantic-settings==2.3.4
 aiohttp>=3.11.0
 python-dotenv==1.0.1
 feedparser>=6.0.11
-yt-dlp==2024.04.09
+yt-dlp
 webvtt-py==0.4.6
 SQLAlchemy==2.0.31
 asyncpg==0.29.0
