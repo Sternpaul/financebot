@@ -202,3 +202,13 @@ class PodcastTrade(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     episode = relationship("PodcastEpisode", backref="trades")
+
+class PodcastTranscript(Base):
+    __tablename__ = 'podcast_transcripts'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    video_id = Column(String, ForeignKey('podcast_episodes.video_id', ondelete='CASCADE'), nullable=False, unique=True)
+    transcript_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    episode = relationship("PodcastEpisode", backref="transcript_record")
