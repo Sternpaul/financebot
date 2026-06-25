@@ -108,12 +108,13 @@ async def main():
     scheduler.add_job(generate_morning_report, 'cron', hour=int(report_time[0]), minute=int(report_time[1]))
     
     # Run once immediately on startup so we don't have to wait 1 minute for the first data
-    asyncio.create_task(run_news_ingestion())
-    asyncio.create_task(run_brain_synthesis())
-    asyncio.create_task(sync_podcasts())
+    startup_tasks = []
+    startup_tasks.append(asyncio.create_task(run_news_ingestion()))
+    startup_tasks.append(asyncio.create_task(run_brain_synthesis()))
+    startup_tasks.append(asyncio.create_task(sync_podcasts()))
     
     # Start Telegram Telethon client for real-time WebSockets
-    asyncio.create_task(start_telegram_streaming())
+    startup_tasks.append(asyncio.create_task(start_telegram_streaming()))
     
     # Run an immediate backfill after a short delay to let the streaming client connect first
     async def delayed_backfill():
