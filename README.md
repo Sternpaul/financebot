@@ -62,7 +62,9 @@ Click the FinanceBot puzzle icon in your Chrome toolbar. This will open a quick-
 - **Robust Database Foundation**: Asynchronous SQLAlchemy and Postgres with `pgvector` for storing portfolio holdings, embeddings, user settings, and watchlists.
 - **Dynamic Ledger & Market Integration**: Portfolio states, P&L, and equity curves are calculated dynamically from transaction history. Real-time Yahoo Finance indicators natively display open/closed market states with intelligent charting logic.
 - **Automated Intelligence & Ingestion**: Background workers reliably poll traditional news, Substack reports, and Telegram alpha streams. A sophisticated "AI Brain" compresses articles into 30-minute Short-Term Memories, and recursively compacts them into dense Long-Term "Master Summaries" every 24 hours. The entire AI background pipeline utilizes an **O(1) JSON Batching Architecture**, guaranteeing infinite scaling capabilities without ever exceeding harsh Free-Tier API rate limits.
+- **Podcast Trades Tracker**: Automatic extraction of trade ideas from macro podcasts (e.g. Blockworks Forward Guidance). Ingests YouTube RSS feeds, downloads transcripts, and uses AI to extract tickers, direction (Long/Short), thesis, and speaker — all viewable in a dedicated `/podcasts` dashboard page.
 - **Interactive AI "Explain"**: Seamlessly ask the AI to "Explain Today's Move" for any ticker. The dashboard slides open a chat sidebar and streams an explanation via OpenRouter, leveraging recently ingested news and market context.
+- **AI Model Fallback**: All dashboard AI features (Chat, Explain, Market Summary) use a shared OpenRouter helper with automatic model fallback. If the primary model is unavailable or rate-limited, it seamlessly rotates through configured fallback models.
 - **Risk Cockpit**: Dedicated portfolio risk analytics visualizing your Asset Allocation, Concentration Risk, and dynamic Sector Exposure powered by Recharts.
 - **Real-Time Alert Engine & Performance Tracking**: Fully customizable technical alerts (price targets, volume shifts, % drops) that push rich notifications to your phone via Discord. A nightly background job evaluates historical alerts, calculating their 3-day, 7-day, and 30-day forward returns to visualize the predictive power of your parameters.
 - **Morning Briefings with Catalyst Injection**: Every morning, the AI synthesizes your portfolio's news and intelligently injects upcoming corporate earnings dates directly from the calendar. The generated report follows a strict structure: separating a pure Macro Overview, filtering Portfolio Updates to only holdings with actionable news, and scanning a dynamic Watchlist Radar.
@@ -86,6 +88,10 @@ If you are deploying the Next.js Dashboard to Vercel, you must set the following
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Public Key
 - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key (Required to securely bypass RLS on the server)
 - `DASHBOARD_PASSWORD`: Your master password. The dashboard will require this password to log in.
+- `AUTH_SECRET`: A random 32+ character string used for signing JWTs (generate with `openssl rand -base64 32`).
+- `OPENROUTER_API_KEY`: Your OpenRouter API key (used by all AI features in the dashboard).
+- `LLM_MODEL`: *(Optional)* Primary model slug (e.g. `google/gemini-2.5-flash-preview-05-20`).
+- `LLM_FALLBACK_MODELS`: *(Optional)* Comma-separated fallback model slugs (e.g. `google/gemma-4-31b-it:free,openrouter/owl-alpha`).
 
 ### 🔒 Security & Row Level Security (RLS)
 The database is secured using a hybrid architecture for single-user personal dashboards:
@@ -105,14 +111,14 @@ docker compose run --rm worker alembic upgrade head
 ```
 
 5. **Fix Supabase PostgREST Permissions (CRITICAL):**
-Because Alembic creates the tables directly in PostgreSQL as the admin user, the Supabase Data API (PostgREST) won't automatically have read access, resulting in a `permission denied for table` error on the frontend.
-You **MUST** run the following SQL snippet in your Supabase Dashboard's SQL Editor to grant the web roles access:
+Because Alembic creates the tables directly in PostgreSQL as the admin user, the Supabase Data API (PostgREST) won't automatically have read access via the `service_role` key, resulting in a `permission denied for table` error on the frontend.
+You **MUST** run the following SQL snippet in your Supabase Dashboard's SQL Editor to grant `service_role` access:
 ```sql
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated;
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 ```
+> ⚠️ **Do NOT grant permissions to `anon` or `authenticated` roles** unless you have specific RLS policies configured. The dashboard uses the `service_role` key which bypasses RLS securely on the server side.
 
 6. Run the stack:
 ```bash
