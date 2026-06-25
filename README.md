@@ -82,7 +82,8 @@ LLM_API_KEY=sk-or-v1-xxxxxxxxx
 ```
 3. Spin up the lightweight isolated container:
 ```bash
-docker compose -f docker-compose-local.yml up -d
+cd local_worker
+docker compose up -d
 ```
 This worker will silently wake up at 02:00 AM every day, query your cloud database for any pending episodes, download the transcripts seamlessly using your residential IP, pass them through the `openrouter/owl-alpha` AI to extract actionable trades, and sync everything back to your dashboard!
 

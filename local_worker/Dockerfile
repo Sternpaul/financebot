@@ -9,8 +9,8 @@ RUN apt-get update && \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-local.txt .
-RUN pip install --no-cache-dir -r requirements-local.txt
+COPY local_worker/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
