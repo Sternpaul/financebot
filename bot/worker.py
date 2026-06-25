@@ -110,6 +110,7 @@ async def main():
     # Run once immediately on startup so we don't have to wait 1 minute for the first data
     asyncio.create_task(run_news_ingestion())
     asyncio.create_task(run_brain_synthesis())
+    asyncio.create_task(sync_podcasts())
     
     # Start Telegram Telethon client for real-time WebSockets
     asyncio.create_task(start_telegram_streaming())

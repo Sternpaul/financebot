@@ -25,7 +25,20 @@ CORE_SOURCES = [
     {'platform': 'telegram', 'handle': 'RunnerXBT_Insights', 'region': None, 'display_name': 'RunnerXBT', 'is_core': True},
     {'platform': 'telegram', 'handle': 'WalterBloomberg', 'region': None, 'display_name': 'Walter Bloomberg', 'is_core': True},
     {'platform': 'substack', 'handle': 'cryptohayes', 'region': None, 'display_name': 'Arthur Hayes', 'is_core': True},
-    {'platform': 'substack', 'handle': 'thebearcave', 'region': None, 'display_name': 'The Bear Cave', 'is_core': True}
+    {'platform': 'substack', 'handle': 'thebearcave', 'region': None, 'display_name': 'The Bear Cave', 'is_core': True},
+    
+    # YouTube Channels / Podcasts
+    {'platform': 'youtube_podcast', 'handle': 'UCP1NPogk59lhBfO2F5OVQBw', 'region': None, 'display_name': 'Forward Guidance', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCyLaBb4OibRL7KMdd4wZ0OQ', 'region': None, 'display_name': 'Threadguy Streams', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCESLZhusAkFfsNsApnjF_Cg', 'region': None, 'display_name': 'All-In Podcast', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCpQBb0fToph3jrDulwz1iUQ', 'region': None, 'display_name': 'Invest Like the Best', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCSLOw8JrFTBb3qF-p4v0v_w', 'region': None, 'display_name': 'Jordi Visser', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCBOkqyWxbp8jtcsvcHB7qog', 'region': None, 'display_name': 'We Study Billionaires', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCEAwYFRFUuekaEmKz4oiB_A', 'region': None, 'display_name': '1000x', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UC-DRzaGnL_vtBUpCFH5M0tg', 'region': None, 'display_name': 'TBPN', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCZa18YV7qayTh-MRIrBhDpA', 'region': None, 'display_name': 'Dwarkesh Podcast', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UC7B3Y1yrg4S7mmgoR-NsfxA', 'region': None, 'display_name': 'Taiki Maeda', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCeazsjKmU-LhEe7VJdWo9UA', 'region': None, 'display_name': 'Master Investor', 'is_core': True}
 ]
 
 async def seed_core_sources():

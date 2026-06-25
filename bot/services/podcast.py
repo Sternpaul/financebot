@@ -8,14 +8,10 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import feedparser
 
 from bot.db.database import AsyncSessionLocal
-from bot.db.models import PodcastEpisode, PodcastTrade
+from bot.db.models import PodcastEpisode, PodcastTrade, ContentSource
 from bot.services.ai import compress_with_scaledown, generate_completion
 
 logger = logging.getLogger(__name__)
-
-TARGET_CHANNELS = [
-    {"name": "Blockworks Macro", "channel_id": "UCP1NPogk59lhBfO2F5OVQBw"}
-]
 
 async def fetch_rss_episodes(channel_id: str):
     """Fetch recent videos from YouTube RSS feed"""
@@ -102,9 +98,21 @@ async def sync_podcasts():
     
     try:
         async with AsyncSessionLocal() as session:
-            for channel in TARGET_CHANNELS:
-                show_name = channel["name"]
-                channel_id = channel["channel_id"]
+            # Get target channels dynamically from the DB
+            stmt = select(ContentSource).where(
+                ContentSource.platform == 'youtube_podcast',
+                ContentSource.is_active == True
+            )
+            result = await session.execute(stmt)
+            target_channels = result.scalars().all()
+            
+            if not target_channels:
+                logger.info("No active YouTube podcast channels found in database.")
+                return
+
+            for channel in target_channels:
+                show_name = channel.display_name or channel.handle
+                channel_id = channel.handle
                 
                 logger.info(f"Checking RSS for {show_name}...")
                 episodes = await fetch_rss_episodes(channel_id)

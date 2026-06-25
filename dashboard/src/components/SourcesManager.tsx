@@ -99,11 +99,12 @@ export default function SourcesManager() {
         >
           <option value="telegram">Telegram</option>
           <option value="substack">Substack</option>
+          <option value="youtube_podcast">YouTube Channel</option>
           <option value="yfinance">Specific Ticker</option>
         </select>
         <input 
           type="text" 
-          placeholder="Handle / Domain / Ticker" 
+          placeholder="Handle / ID / Domain / Ticker" 
           value={newHandle}
           onChange={(e) => setNewHandle(e.target.value)}
           style={{ flex: 1, padding: '8px', borderRadius: '4px', background: 'var(--background)', color: 'var(--foreground)', border: '1px solid #333' }}
@@ -150,9 +151,9 @@ export default function SourcesManager() {
           return (
           <div key={source.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
             <div>
-              <span style={{ fontWeight: 'bold', marginRight: '10px', color: 'var(--foreground)' }}>{source.handle}</span>
+              <span style={{ fontWeight: 'bold', marginRight: '10px', color: 'var(--foreground)' }}>{source.display_name || source.handle}</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'var(--background)', padding: '2px 6px', borderRadius: '4px', border: '1px solid #333' }}>
-                {source.platform === 'yfinance' ? 'Watchlist News' : source.platform}
+                {source.platform === 'yfinance' ? 'Watchlist News' : source.platform === 'youtube_podcast' ? 'YouTube Channel' : source.platform}
               </span>
               {source.is_core && <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#ffcc00' }}>⭐ Core</span>}
             </div>
