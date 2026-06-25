@@ -37,13 +37,27 @@ export async function addSource(newPlatform: string, newHandle: string) {
           await supabaseAdmin.from("watchlist").insert([{ ticker: newHandle.toUpperCase(), alert_price: true, alert_news: true }]);
       }
   } else if (newPlatform === 'youtube_podcast') {
-      let finalHandle = newHandle;
-      let displayName = newHandle;
+      let parsedHandle = newHandle;
       
-      // Smart Handle Resolution
-      if (newHandle.startsWith('@')) {
+      // Parse full URLs
+      if (newHandle.includes('youtube.com/')) {
+          const channelMatch = newHandle.match(/\/channel\/(UC[a-zA-Z0-9_-]+)/);
+          const handleMatch = newHandle.match(/\/(@[a-zA-Z0-9_-]+)/);
+          
+          if (channelMatch && channelMatch[1]) {
+              parsedHandle = channelMatch[1];
+          } else if (handleMatch && handleMatch[1]) {
+              parsedHandle = handleMatch[1];
+          }
+      }
+
+      let finalHandle = parsedHandle;
+      let displayName = parsedHandle;
+      
+      // Smart Handle Resolution for @handles
+      if (parsedHandle.startsWith('@')) {
           try {
-              const res = await fetch(`https://www.youtube.com/${newHandle}`);
+              const res = await fetch(`https://www.youtube.com/${parsedHandle}`);
               const html = await res.text();
               const match = html.match(/"externalId":"(UC[a-zA-Z0-9_-]+)"/) || 
                             html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) ||

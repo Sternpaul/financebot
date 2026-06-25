@@ -56,6 +56,26 @@ Click the FinanceBot puzzle icon in your Chrome toolbar. This will open a quick-
 
 ---
 
+### 5. Custom Ingestion Feeds
+Users can add and manage specific sources via the dashboard:
+
+#### YouTube Podcasts Integration
+1. Go to **Settings -> System Settings**.
+2. Select **YouTube Channel** from the dropdown.
+3. You can provide the source in three ways:
+   - **Handle**: `@TaikiMaeda` (Smart resolution will automatically find the Channel ID!)
+   - **URL**: `https://www.youtube.com/@TaikiMaeda` or `https://www.youtube.com/channel/UC7B3Y...`
+   - **Raw ID**: `UC7B3Y1yrg4S7mmgoR-NsfxA`
+
+The backend worker will fetch new videos every 4 hours, pull their transcripts, and use OpenRouter AI to extract structured trades (Long/Short/Neutral) into your dashboard.
+
+#### Other Sources
+- **Substack Newsletters**: Automatically fetches RSS feeds for requested authors.
+- **Telegram Channels**: Backfills and continuously tracks private alpha channels via Telethon.
+- **Watchlist Tickers**: Auto-fetches news specifically related to watched stocks via Yahoo Finance RSS.
+
+---
+
 ## ✨ Core Features
 
 - **Modern Web Dashboard**: A sleek, Vercel/Linear style Next.js 15 interface featuring dynamic portfolios, interactive asset allocation charts, and a highly responsive design.

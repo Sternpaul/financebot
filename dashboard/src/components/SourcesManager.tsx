@@ -199,7 +199,20 @@ export default function SourcesManager() {
           return (
           <div key={source.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
             <div>
-              <span style={{ fontWeight: 'bold', marginRight: '10px', color: 'var(--foreground)' }}>{source.display_name || source.handle}</span>
+              {source.platform === 'youtube_podcast' ? (
+                <a 
+                  href={`https://www.youtube.com/channel/${source.handle}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ fontWeight: 'bold', marginRight: '10px', color: '#ffcc00', textDecoration: 'none' }}
+                >
+                  {source.display_name || source.handle} ↗
+                </a>
+              ) : (
+                <span style={{ fontWeight: 'bold', marginRight: '10px', color: 'var(--foreground)' }}>
+                  {source.display_name || source.handle}
+                </span>
+              )}
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'var(--background)', padding: '2px 6px', borderRadius: '4px', border: '1px solid #333' }}>
                 {source.platform === 'yfinance' ? 'Watchlist News' : source.platform === 'youtube_podcast' ? 'YouTube Channel' : source.platform}
               </span>
