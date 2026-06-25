@@ -28,7 +28,7 @@ CORE_SOURCES = [
     {'platform': 'substack', 'handle': 'thebearcave', 'region': None, 'display_name': 'The Bear Cave', 'is_core': True},
     
     # YouTube Channels / Podcasts
-    {'platform': 'youtube_podcast', 'handle': 'UCP1NPogk59lhBfO2F5OVQBw', 'region': None, 'display_name': 'Forward Guidance', 'is_core': True},
+    {'platform': 'youtube_podcast', 'handle': 'UCkrwgzhIBKccuDsi_SvZtnQ', 'region': None, 'display_name': 'Forward Guidance', 'is_core': True},
     {'platform': 'youtube_podcast', 'handle': 'UCyLaBb4OibRL7KMdd4wZ0OQ', 'region': None, 'display_name': 'Threadguy Streams', 'is_core': True},
     {'platform': 'youtube_podcast', 'handle': 'UCESLZhusAkFfsNsApnjF_Cg', 'region': None, 'display_name': 'All-In Podcast', 'is_core': True},
     {'platform': 'youtube_podcast', 'handle': 'UCpQBb0fToph3jrDulwz1iUQ', 'region': None, 'display_name': 'Invest Like the Best', 'is_core': True},
