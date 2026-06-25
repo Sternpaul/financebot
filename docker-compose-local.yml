@@ -2,7 +2,7 @@ services:
   local-transcript-worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     command: python -m bot.local_worker
     restart: unless-stopped
     env_file:
