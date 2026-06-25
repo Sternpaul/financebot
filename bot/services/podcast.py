@@ -60,7 +60,8 @@ async def get_transcript(video_id: str) -> str | None:
                 'outtmpl': out_tmpl,
                 'quiet': True,
                 'no_warnings': True,
-                'cookiefile': '/app/cookies.txt'
+                'cookiefile': '/app/cookies.txt',
+                'impersonate': 'chrome'
             }
             
             try:
