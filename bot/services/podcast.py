@@ -8,7 +8,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import feedparser
 
 from bot.db.database import AsyncSessionLocal
-from bot.db.models import PodcastEpisode, PodcastTrade, ContentSource
+from bot.db.models import PodcastEpisode, PodcastTrade, ContentSource, IngestionLog
 from bot.services.ai import compress_with_scaledown, generate_completion
 
 logger = logging.getLogger(__name__)
@@ -166,8 +166,26 @@ async def sync_podcasts():
                         session.add(trade)
                         
                     new_ep.is_processed = True
+                    
+                    # Log success to database
+                    session.add(IngestionLog(
+                        source_platform="youtube_podcast",
+                        source_handle=show_name,
+                        status="SUCCESS",
+                        message=f"Processed episode {video_id} and found {len(trades_json)} trades."
+                    ))
+                    
                     await session.commit()
                     logger.info(f"Processed episode {video_id} and found {len(trades_json)} trades.")
                     
     except Exception as e:
         logger.error(f"Podcast sync failed: {e}", exc_info=True)
+        # Log failure
+        async with AsyncSessionLocal() as session:
+            session.add(IngestionLog(
+                source_platform="youtube_podcast",
+                source_handle="sync_podcasts",
+                status="ERROR",
+                message=f"Podcast sync failed: {str(e)}"
+            ))
+            await session.commit()

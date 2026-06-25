@@ -5,7 +5,7 @@ import { fetchIngestionLogs } from '@/app/actions/logs';
 
 export default function IngestionLogs() {
   const [logs, setLogs] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'raw' | 'ai'>('raw');
+  const [activeTab, setActiveTab] = useState<'raw' | 'ai' | 'podcast'>('raw');
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -49,6 +49,18 @@ export default function IngestionLogs() {
             }}>
             AI Brain Activity
           </button>
+          <button 
+            onClick={() => setActiveTab('podcast')}
+            style={{ 
+              padding: '6px 12px', 
+              background: activeTab === 'podcast' ? '#ffcc00' : 'transparent',
+              color: activeTab === 'podcast' ? '#000' : 'var(--text-secondary)',
+              border: '1px solid #ffcc00',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}>
+            Podcast Sync
+          </button>
         </div>
       </div>
       <div 
@@ -56,7 +68,7 @@ export default function IngestionLogs() {
           fontFamily: 'monospace', 
           fontSize: '12px', 
           backgroundColor: '#000', 
-          color: activeTab === 'ai' ? '#e0b0ff' : '#0f0', 
+          color: activeTab === 'ai' ? '#e0b0ff' : activeTab === 'podcast' ? '#ffcc00' : '#0f0', 
           padding: '10px', 
           borderRadius: '5px',
           height: '400px',
@@ -69,7 +81,7 @@ export default function IngestionLogs() {
           const prefix = `[${time}] [${log.source_platform.toUpperCase()}] [${log.source_handle}]`;
           const status = `[${log.status}]`;
           return (
-            <div key={log.id} style={{ marginBottom: '4px', color: log.status === 'ERROR' ? '#f00' : log.status === 'SUCCESS' ? (activeTab === 'ai' ? '#e0b0ff' : '#0f0') : '#888' }}>
+            <div key={log.id} style={{ marginBottom: '4px', color: log.status === 'ERROR' ? '#f00' : log.status === 'SUCCESS' ? (activeTab === 'ai' ? '#e0b0ff' : activeTab === 'podcast' ? '#ffcc00' : '#0f0') : '#888' }}>
               {prefix} {status} {log.message}
             </div>
           );

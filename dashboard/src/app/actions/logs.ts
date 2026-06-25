@@ -2,7 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-export async function fetchIngestionLogs(limit = 100, platform: 'raw' | 'ai' = 'raw') {
+export async function fetchIngestionLogs(limit = 100, platform: 'raw' | 'ai' | 'podcast' = 'raw') {
   try {
     let query = supabaseAdmin
       .from('ingestion_logs')
@@ -12,8 +12,10 @@ export async function fetchIngestionLogs(limit = 100, platform: 'raw' | 'ai' = '
       
     if (platform === 'ai') {
         query = query.eq('source_platform', 'ai_brain');
+    } else if (platform === 'podcast') {
+        query = query.eq('source_platform', 'youtube_podcast');
     } else {
-        query = query.neq('source_platform', 'ai_brain');
+        query = query.neq('source_platform', 'ai_brain').neq('source_platform', 'youtube_podcast');
     }
 
     const { data, error } = await query;
