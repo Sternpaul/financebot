@@ -3,10 +3,7 @@ pydantic-settings==2.3.4
 aiohttp>=3.11.0
 python-dotenv==1.0.1
 feedparser>=6.0.11
-yt-dlp
-curl_cffi
-brotli
-webvtt-py==0.4.6
+youtube-transcript-api>=0.6.2
 SQLAlchemy==2.0.31
 asyncpg==0.29.0
 pgvector==0.3.1

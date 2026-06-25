@@ -7,8 +7,6 @@ services:
     restart: unless-stopped
     env_file:
       - ../.env
-    volumes:
-      - ../cookies.txt:/app/cookies.txt
     network_mode: "host" # Useful for avoiding nested DNS issues, but bridge is fine too
     deploy:
       resources:

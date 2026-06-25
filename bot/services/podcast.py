@@ -39,72 +39,24 @@ async def fetch_rss_episodes(channel_id: str):
     return episodes
 
 async def get_transcript(video_id: str) -> str | None:
-    """Fetch the auto-generated YouTube transcript using yt-dlp to bypass IP blocks"""
+    """Fetch the auto-generated YouTube transcript using youtube-transcript-api"""
     def fetch():
-        import yt_dlp
-        import webvtt
-        import os
-        import tempfile
+        from youtube_transcript_api import YouTubeTranscriptApi
+        import logging
+        logger = logging.getLogger(__name__)
         
-        url = f"https://www.youtube.com/watch?v={video_id}"
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            out_tmpl = os.path.join(tmpdir, "%(id)s.%(ext)s")
+        try:
+            # We don't even need cookies on a residential IP! 
+            # This API is 100x lighter and faster than yt-dlp.
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
             
-            ydl_opts = {
-                'skip_download': True,
-                'writesubtitles': True,
-                'writeautomaticsub': True,
-                'subtitleslangs': ['en'],
-                'subtitlesformat': 'vtt',
-                'outtmpl': out_tmpl,
-                'quiet': True,
-                'no_warnings': True,
-                'cookiefile': '/app/cookies.txt',
-                'impersonate': 'chrome'
-            }
+            # Combine all text blocks
+            lines = [t['text'].replace('\n', ' ').strip() for t in transcript_list if t['text']]
+            return " ".join(lines)
             
-            try:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([url])
-            except Exception as e:
-                logger.error(f"yt-dlp failed for {video_id}: {e}")
-                return None
-                
-            # Find the .vtt file
-            vtt_file = None
-            for f in os.listdir(tmpdir):
-                if f.endswith('.vtt'):
-                    vtt_file = os.path.join(tmpdir, f)
-                    break
-                    
-            if not vtt_file:
-                logger.error(f"No .vtt file found for {video_id}")
-                return None
-                
-            try:
-                vtt = webvtt.read(vtt_file)
-                lines = []
-                prev_line = ""
-                for caption in vtt:
-                    # Clean up the text
-                    text = caption.text.replace('\n', ' ').replace('  ', ' ').strip()
-                    # Remove tags like <c> or </c> that yt-dlp sometimes leaves in auto-subs
-                    import re
-                    text = re.sub(r'<[^>]+>', '', text).strip()
-                    
-                    if text and text != prev_line:
-                        # Basic deduplication for rolling captions
-                        if prev_line and text.startswith(prev_line):
-                            lines[-1] = text
-                        else:
-                            lines.append(text)
-                        prev_line = text
-                
-                return " ".join(lines)
-            except Exception as e:
-                logger.error(f"Failed to parse VTT for {video_id}: {e}")
-                return None
+        except Exception as e:
+            logger.error(f"Transcript fetch failed for {video_id}: {e}")
+            return None
             
     return await asyncio.to_thread(fetch)
 
