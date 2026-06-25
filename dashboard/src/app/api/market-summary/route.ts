@@ -32,11 +32,11 @@ export async function POST(req: Request) {
 Analyze the provided recent news feed (which contains Telegram alpha, Substack reports, and traditional news) and generate a short, punchy, and highly actionable paragraph explaining the primary drivers of market action right now. 
 Focus on specific tickers, macro events, or narratives mentioned in the feed. Do NOT use conversational filler like "Here is the summary" or "Based on the provided text". Just write the summary. You may use markdown for bolding tickers.`;
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY || process.env.LLM_API_KEY;
     const model = process.env.LLM_MODEL || 'nex-agi/nex-n2-pro:free';
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY is not configured.' }, { status: 500 });
+      return NextResponse.json({ error: 'OPENROUTER_API_KEY or LLM_API_KEY is not configured.' }, { status: 500 });
     }
 
     const openRouterMessages = [
