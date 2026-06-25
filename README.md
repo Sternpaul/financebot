@@ -72,7 +72,14 @@ To bypass aggressive YouTube datacenter IP bans, the podcast ingestion pipeline 
 **How to run the Local Transcript Worker:**
 Because Cloud IPs are banned from downloading YouTube subtitles, you must run this worker locally.
 1. Extract your YouTube cookies using a browser extension (like "Get cookies.txt LOCALLY") and save them as `cookies.txt` in the root of the project.
-2. Ensure you have your `.env` file with your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `OPENROUTER_API_KEY` in the same directory.
+2. Create a `.env` file in the same directory and provide these exact variables:
+```env
+# Your Supabase Postgres connection string
+SUPABASE_URL=postgresql://postgres.xxx:password@aws-0-region.pooler.supabase.com:6543/postgres
+
+# Your OpenRouter API Key (mapped to the worker's expected variable)
+LLM_API_KEY=sk-or-v1-xxxxxxxxx
+```
 3. Spin up the lightweight isolated container:
 ```bash
 docker compose -f docker-compose-local.yml up -d
