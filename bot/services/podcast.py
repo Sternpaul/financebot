@@ -8,7 +8,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import feedparser
 
 from bot.db.database import AsyncSessionLocal
-from bot.db.models import PodcastEpisode, PodcastTrade, ContentSource, IngestionLog
+from bot.db.models import PodcastEpisode, PodcastTrade, ContentSource, IngestionLog, PodcastTranscript
 from bot.services.ai import compress_with_scaledown, generate_completion
 
 logger = logging.getLogger(__name__)
@@ -146,6 +146,13 @@ async def sync_podcasts():
                         new_ep.is_processed = True # Mark processed so we don't infinitely retry failed transcripts
                         await session.commit()
                         continue
+                    
+                    # 2.5 Save transcript to decoupled table
+                    transcript_record = PodcastTranscript(
+                        video_id=video_id,
+                        transcript_text=transcript
+                    )
+                    session.add(transcript_record)
                         
                     # 3. Extract trades
                     logger.info(f"Extracting trades for {video_id}...")

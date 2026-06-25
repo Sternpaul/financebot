@@ -20,8 +20,8 @@ function getApiKey(): string {
 }
 
 function getModelsToTry(): string[] {
-  const primary = process.env.LLM_MODEL || 'google/gemini-2.5-flash-preview-05-20';
-  const fallbacksRaw = process.env.LLM_FALLBACK_MODELS || 'google/gemma-4-31b-it:free';
+  const primary = process.env.LLM_MODEL || 'openrouter/owl-alpha';
+  const fallbacksRaw = process.env.LLM_FALLBACK_MODELS || 'nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,google/gemini-2.5-flash-free';
   const fallbacks = fallbacksRaw.split(',').map(m => m.trim()).filter(Boolean);
   return [primary, ...fallbacks];
 }

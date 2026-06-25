@@ -34,8 +34,8 @@ class WorkerConfig(SharedConfig):
     # LLM & Embedding
     llm_provider: str = Field("openrouter", alias="LLM_PROVIDER")
     llm_api_key: Optional[str] = Field(None, alias="LLM_API_KEY")
-    llm_model: str = Field("nex-agi/nex-n2-pro:free", alias="LLM_MODEL")
-    llm_fallback_models: str = Field("nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,openrouter/owl-alpha", alias="LLM_FALLBACK_MODELS")
+    llm_model: str = Field("openrouter/owl-alpha", alias="LLM_MODEL")
+    llm_fallback_models: str = Field("nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,google/gemini-2.5-flash-free", alias="LLM_FALLBACK_MODELS")
     scaledown_api_key: Optional[str] = Field(None, alias="SCALEDOWN_API_KEY")
     embedding_provider: str = Field("openai", alias="EMBEDDING_PROVIDER")
     openai_api_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
