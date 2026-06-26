@@ -2,10 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (ffmpeg is needed by yt-dlp)
+# Install system dependencies (nodejs is needed by yt-dlp for JS challenges)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 COPY local_worker/requirements.txt .
