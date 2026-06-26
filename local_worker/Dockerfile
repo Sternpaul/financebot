@@ -2,12 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (nodejs is needed by yt-dlp for JS challenges)
+# Install system dependencies (curl/unzip for deno)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    gcc \
-    nodejs \
-    && rm -rf /var/lib/apt/lists/*
+    gcc curl unzip && \
+    curl -fsSL https://deno.land/install.sh | sh && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/root/.deno/bin:$PATH"
 
 COPY local_worker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
