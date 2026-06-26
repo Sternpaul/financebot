@@ -47,9 +47,8 @@ async def process_pending_transcripts():
                     if str(e) == "HTTP_429":
                         logger.error(f"CIRCUIT BREAKER TRIGGERED: YouTube returned HTTP 429 Rate Limit for {ep.video_id}. Aborting run.")
                         
-                        # Log the 429 to the dashboard so the user sees it
                         session.add(IngestionLog(
-                            source_platform="youtube_podcast_local",
+                            source_platform="youtube_podcast",
                             source_handle=ep.show_name,
                             status="ERROR",
                             message=f"CIRCUIT BREAKER: HTTP 429 Rate Limit hit while downloading {ep.video_id}. Sleeping until next scheduled run."
@@ -95,7 +94,7 @@ async def process_pending_transcripts():
                 ep.is_processed = True
                 
                 session.add(IngestionLog(
-                    source_platform="youtube_podcast_local",
+                    source_platform="youtube_podcast",
                     source_handle=ep.show_name,
                     status="SUCCESS",
                     message=f"Local worker processed episode {ep.video_id} and found {len(trades_json)} trades."
