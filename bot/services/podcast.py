@@ -39,27 +39,79 @@ async def fetch_rss_episodes(channel_id: str):
     return episodes
 
 async def get_transcript(video_id: str) -> str | None:
-    """Fetch the auto-generated YouTube transcript using youtube-transcript-api"""
-    def fetch():
-        from youtube_transcript_api import YouTubeTranscriptApi
-        import logging
-        logger = logging.getLogger(__name__)
+    """Fetch the auto-generated YouTube transcript using yt-dlp via subprocess"""
+    import os
+    import re
+    
+    # We use cookies.txt explicitly
+    cookies_path = "cookies.txt"
+    if not os.path.exists(cookies_path):
+        logger.warning("cookies.txt not found. yt-dlp might fail.")
+    
+    output_vtt = f"{video_id}.en.vtt"
+    
+    # Remove any old vtt
+    if os.path.exists(output_vtt):
+        os.remove(output_vtt)
         
-        try:
-            # We don't even need cookies on a residential IP! 
-            # This API is 100x lighter and faster than yt-dlp.
-            api = YouTubeTranscriptApi()
-            transcript = api.fetch(video_id)
+    cmd = [
+        "python", "-m", "yt_dlp",
+        "--cookies", cookies_path,
+        "--impersonate", "chrome",
+        "--remote-components", "ejs:github",
+        "--skip-download",
+        "--write-auto-sub",
+        "--sub-lang", "en",
+        "-o", f"{video_id}.%(ext)s",
+        f"https://www.youtube.com/watch?v={video_id}"
+    ]
+    
+    logger.info(f"Running yt-dlp for {video_id}...")
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    
+    stdout, stderr = await process.communicate()
+    out = stdout.decode('utf-8', errors='replace')
+    err = stderr.decode('utf-8', errors='replace')
+    
+    if process.returncode != 0:
+        logger.error(f"yt-dlp failed for {video_id}:\n{err}")
+        # Detect rate limiting
+        if "HTTP Error 429" in err or "HTTP Error 429" in out or "IpBlocked" in err:
+            raise Exception("HTTP_429")
+        return None
+        
+    if not os.path.exists(output_vtt):
+        logger.error(f"Subtitle file {output_vtt} was not created. Output:\n{out}")
+        return None
+        
+    try:
+        with open(output_vtt, 'r', encoding='utf-8') as f:
+            vtt_content = f.read()
             
-            # Combine all text blocks
-            lines = [t.text.replace('\n', ' ').replace('\xa0', ' ').strip() for t in transcript if t.text]
-            return " ".join(lines)
-            
-        except Exception as e:
-            logger.error(f"Transcript fetch failed for {video_id}: {e}")
-            return None
-            
-    return await asyncio.to_thread(fetch)
+        # Parse VTT to pure text
+        lines = []
+        for line in vtt_content.split('\n'):
+            line = line.strip()
+            # Skip WebVTT header, empty lines, timestamps, and metadata
+            if not line or line.startswith('WEBVTT') or line.startswith('Kind:') or line.startswith('Language:') or '-->' in line or line.startswith('Style:') or line.startswith('align:'):
+                continue
+            # Basic cleanup of formatting tags like <c> or <i>
+            line = re.sub(r'<[^>]+>', '', line)
+            if line:
+                lines.append(line.replace('\xa0', ' '))
+                
+        return " ".join(lines)
+        
+    except Exception as e:
+        logger.error(f"Failed to read/parse {output_vtt}: {e}")
+        return None
+    finally:
+        if os.path.exists(output_vtt):
+            os.remove(output_vtt)
 
 async def extract_trades(transcript: str) -> list[dict]:
     """Pass transcript to LLM to extract structured trade ideas"""

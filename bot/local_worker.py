@@ -25,11 +25,11 @@ scheduler = AsyncIOScheduler(
 
 async def process_pending_transcripts():
     """Fetches transcripts for any unprocessed podcast episodes in the database"""
-    logger.info("Local Worker: Checking for pending transcripts...")
+    logger.info("Local Worker: Checking for pending transcripts (limit 3)...")
     
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(PodcastEpisode).where(PodcastEpisode.is_processed == False)
+            stmt = select(PodcastEpisode).where(PodcastEpisode.is_processed == False).limit(3)
             result = await session.execute(stmt)
             pending_episodes = result.scalars().all()
             
@@ -41,12 +41,30 @@ async def process_pending_transcripts():
                 logger.info(f"Processing transcript for {ep.title} ({ep.video_id})...")
                 
                 # 1. Download Transcript using local residential IP
-                transcript = await get_transcript(ep.video_id)
+                try:
+                    transcript = await get_transcript(ep.video_id)
+                except Exception as e:
+                    if str(e) == "HTTP_429":
+                        logger.error(f"CIRCUIT BREAKER TRIGGERED: YouTube returned HTTP 429 Rate Limit for {ep.video_id}. Aborting run.")
+                        
+                        # Log the 429 to the dashboard so the user sees it
+                        session.add(IngestionLog(
+                            source_platform="youtube_podcast_local",
+                            source_handle=ep.show_name,
+                            status="ERROR",
+                            message=f"CIRCUIT BREAKER: HTTP 429 Rate Limit hit while downloading {ep.video_id}. Sleeping until next scheduled run."
+                        ))
+                        await session.commit()
+                        return # Abort entire run!
+                    else:
+                        logger.error(f"Unexpected error for {ep.video_id}: {e}")
+                        transcript = None
+
                 if not transcript:
                     logger.warning(f"Failed to get transcript for {ep.video_id}. Will try again next run.")
                     import random
+                    # Short sleep even on failure (if not 429)
                     await asyncio.sleep(random.uniform(15.0, 30.0))
-                    # We don't mark it processed so it can retry tomorrow
                     continue
                     
                 # 2. Save transcript text
@@ -86,10 +104,10 @@ async def process_pending_transcripts():
                 await session.commit()
                 logger.info(f"Successfully processed {ep.video_id} and found {len(trades_json)} trades.")
                 
-                # IMPORTANT: Be respectful of YouTube's API rate limits to avoid IP bans!
+                # IMPORTANT: Stagger widely to avoid 429
                 import random
-                delay = random.uniform(15.0, 30.0)
-                logger.info(f"Sleeping for {delay:.1f}s before next video...")
+                delay = random.uniform(120.0, 240.0) # 2 to 4 minutes!
+                logger.info(f"Sleeping for {delay/60:.1f} minutes before next video...")
                 await asyncio.sleep(delay)
                 
     except Exception as e:
@@ -111,14 +129,14 @@ async def main():
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(s)))
 
-    # Run once a day at 02:00 AM
-    scheduler.add_job(process_pending_transcripts, 'cron', hour=2, minute=0)
+    # Run every 2 hours
+    scheduler.add_job(process_pending_transcripts, 'cron', hour='*/2', minute=0)
     
     # Run once immediately on startup
     asyncio.create_task(process_pending_transcripts())
     
     scheduler.start()
-    logger.info("Local Debian Worker started successfully. Waking up once a day.")
+    logger.info("Local Debian Worker started successfully. Waking up every 2 hours.")
     
     while True:
         await asyncio.sleep(3600)
