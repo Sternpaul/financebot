@@ -55,6 +55,17 @@ async def process_pending_transcripts():
                         ))
                         await session.commit()
                         return # Abort entire run!
+                    elif str(e) == "VIDEO_UNAVAILABLE":
+                        logger.warning(f"Video {ep.video_id} is permanently unavailable. Marking as processed to skip future retries.")
+                        ep.is_processed = True
+                        session.add(IngestionLog(
+                            source_platform="youtube_podcast",
+                            source_handle=ep.show_name,
+                            status="ERROR",
+                            message=f"Video unavailable or removed: {ep.video_id}. Skipping."
+                        ))
+                        await session.commit()
+                        continue
                     else:
                         logger.error(f"Unexpected error for {ep.video_id}: {e}")
                         transcript = None

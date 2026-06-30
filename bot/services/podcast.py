@@ -82,6 +82,9 @@ async def get_transcript(video_id: str) -> str | None:
         # Detect rate limiting
         if "HTTP Error 429" in err or "HTTP Error 429" in out or "IpBlocked" in err:
             raise Exception("HTTP_429")
+        # Detect permanent failures (deleted, private, upcoming)
+        if "Video unavailable" in err or "Private video" in err or "Premieres in" in err:
+            raise Exception("VIDEO_UNAVAILABLE")
         return None
         
     vtt_files = glob.glob(f"{video_id}.*.vtt")
