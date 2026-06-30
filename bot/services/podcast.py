@@ -42,17 +42,16 @@ async def get_transcript(video_id: str) -> str | None:
     """Fetch the auto-generated YouTube transcript using yt-dlp via subprocess"""
     import os
     import re
+    import glob
     
     # We use cookies.txt explicitly
     cookies_path = "cookies.txt"
     if not os.path.exists(cookies_path):
         logger.warning("cookies.txt not found. yt-dlp might fail.")
     
-    output_vtt = f"{video_id}.en.vtt"
-    
-    # Remove any old vtt
-    if os.path.exists(output_vtt):
-        os.remove(output_vtt)
+    # Remove any old vtt for this video
+    for old_vtt in glob.glob(f"{video_id}.*.vtt"):
+        os.remove(old_vtt)
         
     cmd = [
         "python", "-m", "yt_dlp",
@@ -61,7 +60,8 @@ async def get_transcript(video_id: str) -> str | None:
         "--remote-components", "ejs:github",
         "--skip-download",
         "--write-auto-sub",
-        "--sub-lang", "en",
+        "--sub-format", "vtt",
+        "--sub-lang", "en,en-US,en-GB",
         "-o", f"{video_id}.%(ext)s",
         f"https://www.youtube.com/watch?v={video_id}"
     ]
@@ -84,9 +84,12 @@ async def get_transcript(video_id: str) -> str | None:
             raise Exception("HTTP_429")
         return None
         
-    if not os.path.exists(output_vtt):
-        logger.error(f"Subtitle file {output_vtt} was not created. Output:\n{out}")
+    vtt_files = glob.glob(f"{video_id}.*.vtt")
+    if not vtt_files:
+        logger.error(f"Subtitle file for {video_id} was not created. Output:\n{out}")
         return None
+        
+    output_vtt = vtt_files[0]
         
     try:
         with open(output_vtt, 'r', encoding='utf-8') as f:

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { fetchTranscript } from "@/app/actions/podcasts";
+import LiteYouTubeEmbed from "react-lite-youtube-embed";
+import "react-lite-youtube-embed/dist/LiteYouTubeEmbed.css";
 
 export default function PodcastClient({ initialEpisodes }: { initialEpisodes: any[] }) {
   const [activeTranscript, setActiveTranscript] = useState<{title: string, text: string} | null>(null);
@@ -97,15 +99,10 @@ export default function PodcastClient({ initialEpisodes }: { initialEpisodes: an
               {/* Collapsible Video Embed */}
               {isVideoExpanded && (
                 <div style={{ marginBottom: '20px', borderRadius: '12px', overflow: 'hidden' }}>
-                  <iframe 
-                    width="100%" 
-                    height="280" 
-                    src={`https://www.youtube.com/embed/${episode.video_id}`} 
-                    title="YouTube video player" 
-                    frameBorder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowFullScreen
-                  ></iframe>
+                  <LiteYouTubeEmbed 
+                    id={episode.video_id}
+                    title="YouTube video player"
+                  />
                 </div>
               )}
 

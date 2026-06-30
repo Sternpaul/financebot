@@ -29,7 +29,7 @@ async def process_pending_transcripts():
     
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(PodcastEpisode).where(PodcastEpisode.is_processed == False).limit(3)
+            stmt = select(PodcastEpisode).where(PodcastEpisode.is_processed == False).order_by(PodcastEpisode.published_at.desc()).limit(3)
             result = await session.execute(stmt)
             pending_episodes = result.scalars().all()
             
